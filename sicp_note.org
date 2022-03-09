@@ -1,0 +1,5896 @@
+#+title: SICP NOTEBOOK
+
+* Calendar
+|     chapter |      start |   finished |
+|   1.1-1.2.1 | 2022-01-15 | 2022-01-15 |
+| 1.2.2-1.2.4 | 2022-01-16 | 2022-01-16 |
+| 1.2.5-1.2.6 | 2022-01-17 | 2022-01-17 |
+| 1.3.1-1.3.3 | 2022-01-18 | 2022-01-21 |
+| 1.3.4-2.1.3 | 2022-01-24 | 2022-01-24 |
+|       2.1.4 | 2022-01-25 | 2022-01-25 |
+| 2.2.1-2.2.3 | 2022-01-26 | 2022-01-27 |
+|       2.2.4 | 2022-01-29 | 2022-01-30 |
+| 2.3.1-2.3.3 | 2022-02-07 | 2022-02-09 |
+|       2.3.4 | 2022-02-10 | 2022-02-11 |
+|         2.4 | 2022-02-11 | 2022-02-11 |
+| 2.5.1-2.5.2 | 2022-02-12 | 2022-02-14 |
+|       2.5.3 | 2022-02-15 | 2022-02-21 |
+|         3.1 | 2022-02-22 | 2022-02-23 |
+|         3.2 | 2022-02-23 | 2022-02-23 |
+|         3.3 | 2022-02-24 |            |
+
+* TODO TODO
+- [ ] learn how to use latex in emacs
+* Goal
+- 看书
+- 看视频
+- 运行课本代码
+- 做习题
+* Note
+** How to indent Scheme code from within Emacs
+1. select region using mouse
+2. type: =<ESC> <Ctrl>-\= (an escape key followed by control-backslash)
+** 1.1.2 Three Elements of Programming
+- *primitive expressions*
+- *means of combination*
+- *means of abstraction*
+** 1.1.3 Evaluating Combinations
+- Evaluate the subexpressions of the combination.
+- Apply the operator(leftmost subexpression) to the arguments(values of the other subexpressions)
+
+** 1.1.4 Compound Procedures
+#+begin_src scheme :tangle no
+  (define (<name> <formal parameters>)
+    <body>)
+#+end_src
+
+** 1.1.5 The Substitution Model for Procedure Application
+To apply a compound procedure to arguments, evaluate the body of
+the procedure with each formal parameter replaced by the corresponding argument.
+
+*Application order versus normal order*
+- normal order :: fully expand and then reduce
+- application order :: first evaluate all arguments and then apply procedure to arguments
+
+** 1.1.6 Conditional Expressions and Predicates
+#+begin_src scheme :tangle no
+  ;; the <e> part may be a sequence of expressions
+  (cond (<p1> <e1>)
+	(<p2> <e2>)
+	...
+	(<pn> <en>))
+
+  ;; <consequent> and <alternative> must be single expressions
+  (if <predicate> <consequent> <alternative>)
+#+end_src
+predicates we can use: ~and~, ~or~, ~not~, ~>~, ~<~, ~=~
+
+** 1.3.2 Constructing Procedures Using lambda
+lambda的形式，注意 =<body>= 没有括号包围。
+#+begin_src scheme :tangle no
+  (lambda (<formal-parameters>) <body>)
+#+end_src
+*Using let to create local variables*
+#+begin_src scheme :tangle no
+  (let ((<var1> <exp1>)
+	(<var2> <exp2>)
+	...
+	(<varn> <expn>))
+    <body>)
+#+end_src
+
+** 2.2 Hierarchical Data and the Closure Property
+In general, an operation for combining data objects satisfies the *closure property* if the results of
+combining things with that operation can themselves be combined using the same operation.
+* Example
+  :PROPERTIES:
+  :header-args: :tangle sicp_code.scm
+  :END:
+** 1.1.4
+#+begin_src scheme
+  (define (square x) (* x x))
+
+  (define (sum-of-squares x y)
+    (+ (square x)
+       (square y)))
+#+end_src
+
+** 1.1.7
+Example: Square Roots by Newton's Method
+#+NAME: sqrt-nt
+#+begin_src scheme
+  (define (sqrt-nt x)
+    (define (sqrt-iter guess)
+      (if (good-enough? guess)
+	  guess
+	  (sqrt-iter (improve guess))))
+    (define (good-enough? guess)
+      (< (abs (- (square guess)
+		 x))
+	 0.01))
+    (define (improve guess)
+      (average guess (/ x guess)))
+    (define (average x y)
+      (/ (+ x y) 2))
+    (sqrt-iter 1.0))
+#+end_src
+
+** 1.2.2
+*** TODO implement iterative process
+Example: Counting change
+#+begin_src scheme
+  (define (count-change x)
+    (define (cnt amt n)
+      (cond ((or (< amt 0)(= n 0)) 0)
+	    ((= amt 0) 1)
+	    (else
+	     (+ (cnt (- amt
+			(sel-first-amount n))
+		     n)
+		(cnt amt (- n 1))))))
+    (define (sel-first-amount n)
+      (cond ((= n 1) 1)
+	    ((= n 2) 5)
+	    ((= n 3) 10)
+	    ((= n 4) 25)
+	    ((= n 5) 50)))
+    (cnt x 5))
+
+  (count-change 100) ;;292
+  (count-change 1000) ;;801451
+#+end_src
+
+** 1.2.4 Exponentiation
+#+begin_src scheme
+  ;;linear recursive process
+  (define (expt b n)
+    (if (= n 0)
+	1
+	(* b (expt b (- n 1)))))
+  ;;linear iteration
+  (define (expt b n)
+    (define (expt-iter b counter product)
+      (if (= counter 0)
+	  product
+	  (expt-iter b
+		     (- counter 1)
+		     (* b product))))
+    (expt-iter b n 1))
+#+end_src
+还有一种快速求解的方法。当n时偶数时，~b^n = (b^(n/2))^2~ 当n为奇数时，~b^n = b*b^(n-1)~
+#+begin_src scheme
+  (define (fast-expt b n)
+    (cond ((= n 0) 1)
+	  ((even? n) (square (fast-expt b (/ n 2))))
+	  (else (* b (fast-expt b (- n 1))))))
+#+end_src
+
+** 1.2.5 Greatest Common Divisors
+利用辗转取余来计算最大公约数。
+#+begin_src scheme
+  (define (gcd a b)
+    (if (= b 0)
+	a
+	(gcd b (remainder a b))))
+
+  (gcd 21 14) ;7
+#+end_src
+
+** 1.2.6 Example: Testing for Primality
+找到n的最小除数的方式，就是从2开始到sqrt(n)为止，测试每个数是否能整除n，能就返回该数字。
+那么，如果n是素数，他的最小除数就是他本身n。
+#+begin_src scheme
+  (define (smallest-divisor n)
+    (define (find-divisor test-divisor)
+      (cond ((> (square test-divisor) n) n)
+	    ((divides? test-divisor n) test-divisor)
+	    (else (find-divisor (+ test-divisor 1)))))
+    (define (divides? a b) (= (remainder b a) 0))
+    (find-divisor 2))
+
+  (smallest-divisor 6);2
+
+  (define (prime? n)
+    (= n (smallest-divisor n)))
+
+  (prime? 7); #t
+  (prime? 69);#f
+
+#+end_src
+费马检测可以在O(logN)步检测出n是否为素数。费马检测是基于费马小定理。
+*费马小定理：* 如果n是素数，那么对于正整数a<n，a的n次方与a，对n取模同余。
+如果n不是素数，对于大多数a都不会满足上述关系。
+#+begin_src scheme
+  (define (expmod base exp m)
+    (cond ((= exp 0) 1)
+	  ((even? exp)
+	   (remainder
+	    (square (expmod base (/ exp 2) m))
+	    m))
+	  (else
+	   (remainder
+	    (* base (expmod base (- exp 1) m))
+	    m))))
+
+  (define (fermat-test n)
+    (define (try-it a)
+      (= (expmod a n n) a))
+    (try-it (+ 1 (floor (random (- n 1))))))
+
+  (define (fast-prime? n times)
+    (cond ((= times 0) #t)
+	  ((fermat-test n) (fast-prime? n (- times 1)))
+	  (else #f)))
+
+  (fast-prime? 561 10)
+#+end_src
+** 1.3.1 Procedures as Arguments
+这里抽象了一个sum过程，可以用来计算某个区间的和。term相当于函数的值y(x).
+#+begin_src scheme
+  (define (sum term a next b)
+    (if (> a b)
+	0
+	(+ (term a)
+	   (sum term (next a) next b))))
+#+end_src
+利用sum过程可以用来求函数f在[a,b]的积分。
+#+begin_src scheme
+  (define (integral f a b dx)
+    (define (add-dx x)
+      (+ x dx))
+    (* (sum f (+ a (/ dx 2.0)) add-dx b)
+       dx))
+
+  (define (cube x) (* x x x))
+
+  (integral cube 0 1 0.001)
+#+end_src
+
+** 1.3.4 Procedures as Returned Values
+可以使用不动点求解方程的根
+#+begin_src scheme
+  (define (average x y)
+    (/ (+ x y) 2.))
+
+  (define (average-damp f)
+    (lambda (x) (average x (f x))))
+
+  (define (sqrt x)
+    (fixed-point (average-damp (lambda (y) (/ x y)))
+                 1.0))
+
+  (define (cube-root x)
+    (fixed-point (average-damp (lambda (y) (/ x (square y))))
+                 1.0))
+#+end_src
+可以使用牛顿法求解方程的根g(x)=0，就是求解f(x)的不动点，其中 ~f(x)=x-g(x)/Dg(x)~ ，其中Dg(x)是g(x)在x处的导数。
+#+begin_src scheme
+  (define (deriv g)
+    (lambda (x) (/ (- (g (+ x dx))
+                 (g x))
+              dx)))
+
+  (define dx 0.00001)
+
+  (define (newton-transform g)
+    (lambda (x) (- x (/ (g x)
+                   ((deriv g) x)))))
+
+  (define (newtons-method g guess)
+    (fixed-point (newton-transform g) guess))
+
+  (define (sqrt x)
+    (newtons-method
+     (lambda (y) (- (square y) x)) 1.0))
+#+end_src
+可以将不动点和牛顿法统一
+#+begin_src scheme
+  (define (fixed-point-of-transform g transform guess)
+    (fixed-point (transform g) guess))
+
+  (define (sqrt x)
+    (fixed-point-of-transform
+     (lambda (y) (/ x y)) average-damp 1.0))
+
+  (define (sqrt x)
+    (fixed-point-of-transform
+     (lambda (y) (- (square y) x)) newton-transform 1.0))
+#+end_src
+
+** 2.1.1 Example: Arithmetic Operations for Rational Numbers
+#+begin_src scheme
+  (define (make-rat n d)
+    (let ((g (gcd n d)))
+      (cons (/ n g)
+            (/ d g))))
+
+  (define (numer rat) (car rat))
+
+  (define (denom rat) (cdr rat))
+
+  (define (add-rat x y)
+    (make-rat (+ (* (numer x) (denom y))
+                 (* (numer y) (denom x)))
+              (* (denom x) (denom y))))
+
+  (define (sub-rat x y)
+    (make-rat (- (* (numer x) (denom y))
+                 (* (numer y) (denom x)))
+              (* (denom x) (denom y))))
+  (define (mul-rat x y)
+    (make-rat (* (numer x) (numer y))
+              (* (denom x) (denom y))))
+  (define (div-rat x y)
+    (make-rat (* (numer x) (denom y))
+              (* (denom x) (numer y))))
+
+  (define (equal-rat? x y)
+    (= (* (numer x) (denom y))
+       (* (numer y) (denom x))))
+
+  (define (print-rat x)
+    (display (numer x))
+    (display "/")
+    (display (denom x))
+    (newline))
+
+  (define one-half (make-rat 1 2))
+  (print-rat one-half)
+
+  (define one-third (make-rat 1 3))
+  (print-rat (add-rat one-half one-third))
+  (print-rat (add-rat one-third one-third))
+#+end_src
+
+** 2.2.4 Example: Picture
+   :PROPERTIES:
+  :header-args: :tangle sicp_picture.scm
+  :END:
+*** painter and operations
+#+begin_src scheme
+  ;; combination of painters
+  (define wave2 (beside wave (flip-vert wave)))
+  (define wave4 (below wave2 wave2))
+
+  ;; abstraction combination
+  (define (flipped-pairs painter)
+    (let ((painter2 (beside painter (flip-vert painter))))
+      (below painter2 painter2)))
+  (define wave4 (flipped-pairs wave))
+
+  ;; define recursive operations
+  (define (right-split painter n)
+    (if (= n 0)
+        painter
+        (let ((smaller (right-split painter (- n 1))))
+          (beside painter (below smaller smaller)))))
+  (define (corner-split painter n)
+    (if (= n 0)
+        painter
+        (let* ((up (up-split painter (- n 1)))
+               (right (right-split painter (- n 1)))
+               (top-left (beside up up))
+               (bottom-right (below right right))
+               (corner (corner-split painter (- n 1))))
+          (beside (below painter top-left)
+                  (below bottom-right corner)))))
+
+  (define (square-limit painter n)
+    (let* ((quarter (corner-split painter n))
+           (half (beside (flip-horiz quarter) quarter)))
+      (below (flip-vert half) half)))
+
+  ;; 2.44
+  (define (up-split painter n)
+    (if (= n 0)
+        painter
+        (let ((smaller (up-split painter (- n 1))))
+          (below painter (beside smaller smaller)))))
+
+  ;; operations above take painter as argument and return painter as result.
+  ;; we can have higher-order operations which take operations as argument and return new operations as result.
+  (define (square-of-four tl tr bl br)
+    (lambda (painter)
+      (let ((top (beside (tl painter) (tr painter)))
+            (bottom (beside (bl painter) (br painter))))
+        (below bottom top))))
+  ;; by looking at the picture of flipped-pairs, we can define it in terms of square-of-four
+  (define (flipped-pairs painter)
+    ((square-of-four identity flip-vert identity flip-vert)
+     painter))
+  (define (square-limit painter n)
+    (let ((combine4 (square-of-four flip-horiz identity rotate180 flip-vert)))
+      (combine4 (corner-split painter n))))
+
+  ;; 2.45
+  (define (split first second)
+    (define (iter painter n)
+      (if (= n 0)
+          painter
+          (let ((smaller (iter painter (- n 1))))
+            (first painter (second smaller smaller)))))
+    iter)
+
+  (define right-split (split beside below))
+  (define up-split (split below beside))
+#+end_src
+*** Frames
+Frames consists of three vectors: origin, edge1 and edge2. for each frame, we have an associated frame coordinate map, which take a vector in the unit square and return a vector in the frame.
+#+begin_src scheme
+  (define (frame-coord-map frame)
+    (lambda (v)
+      (add-vect
+       (origin-frame frame)
+       (add-vect (scale-vect (xcor-vect v) (edge1-frame frame))
+                 (scale-vect (ycor-vect v) (edge2-frame frame))))))
+  ;; 2.46
+  (define (make-vect x y) (cons x y))
+  (define (xcor-vect v) (car v))
+  (define (ycor-vect v) (cdr v))
+
+  (define (add-vect v1 v2)
+    (make-vect (+ (xcor-vect v1)
+                  (xcor-vect v2))
+               (+ (ycor-vect v1)
+                  (ycor-vect v2))))
+  (define (sub-vect v1 v2)
+    (make-vect (- (xcor-vect v1)
+                  (xcor-vect v2))
+               (- (ycor-vect v1)
+                  (ycor-vect v2))))
+  (define (scale-vect s v)
+    (make-vect (* s (xcor-vect v))
+               (* s (ycor-vect v))))
+  ;;2.47
+  (define (make-frame origin edge1 edge2)
+    (list origin edge1 edge2))
+  (define (origin-frame f) (car f))
+  (define (edge1-frame f) (cadr f))
+  (define (edge2-frame f) (caddr f))
+#+end_src
+*** Painter
+A painter is a procedure that, given a frame as argument, draws a particular image to fit the frame
+#+begin_src scheme
+  ;; the segments are given using coordinates with respect to the unit square
+  (define (segments->painter segment-list)
+    (lambda (frame)
+      (for-each
+       (lambda (segment)
+         (let ((m (frame-coord-map frame)))
+           (draw-line-wrap
+            (m (start-segment segment))
+            (m (end-segment segment)))
+           ))
+       segment-list)))
+
+  ;; 2.48
+  (define (make-segment v1 v2) (cons v1 v2))
+  (define (start-segment seg) (car seg))
+  (define (end-segment seg) (cdr seg))
+
+  (define (make-seg-wrap x)
+    (make-segment (make-vect (caar x) (cadar x))
+                  (make-vect (caadr x) (cadr (cadr x)))))
+  ;; 2.49
+  (define outline-painter
+    (let ((bl (make-seg-wrap '((0 1) (1 1))))
+          (tl (make-seg-wrap '((0 0) (1 0))))
+          (ll (make-seg-wrap '((0 0) (0 1))))
+          (rl (make-seg-wrap '((1 0) (1 1)))))
+      (segments->painter (list bl tl ll rl))))
+
+  (define x-painter
+    (let ((l1 (make-seg-wrap '((0 0) (1 1))))
+          (l2 (make-seg-wrap '((1 0) (0 1)))))
+      (segments->painter (list l1 l2))))
+
+  (define diamond-painter
+    (let ((l1 (make-seg-wrap '((0.5 0) (1 0.5))))
+          (l2 (make-seg-wrap '((1 0.5) (0.5 1))))
+          (l3 (make-seg-wrap '((0.5 1) (0 0.5))))
+          (l4 (make-seg-wrap '((0 0.5) (0.5 0)))))
+      (segments->painter (list l1 l2 l3 l4))))
+
+  (define wave
+    (let (
+          (l1 (make-seg-wrap '((0.20 0.00) (0.35 0.50))))
+          (l2 (make-seg-wrap '((0.35 0.50) (0.30 0.60))))
+          (l3 (make-seg-wrap '((0.30 0.60) (0.15 0.45))))
+          (l4 (make-seg-wrap '((0.15 0.45) (0.00 0.60))))
+          (l5 (make-seg-wrap '((0.00 0.80) (0.15 0.65))))
+          (l6 (make-seg-wrap '((0.15 0.65) (0.30 0.70))))
+          (l7 (make-seg-wrap '((0.30 0.70) (0.40 0.70))))
+          (l8 (make-seg-wrap '((0.40 0.70) (0.35 0.85))))
+          (l9 (make-seg-wrap '((0.35 0.85) (0.40 1.00))))
+          (l10 (make-seg-wrap '((0.60 1.00) (0.65 0.85))))
+          (l11 (make-seg-wrap '((0.65 0.85) (0.60 0.70))))
+          (l12 (make-seg-wrap '((0.60 0.70) (0.75 0.70))))
+          (l13 (make-seg-wrap '((0.75 0.70) (1.00 0.40))))
+          (l14 (make-seg-wrap '((1.00 0.20) (0.60 0.48))))
+          (l15 (make-seg-wrap '((0.60 0.48) (0.80 0.00))))
+          (l16 (make-seg-wrap '((0.40 0.00) (0.50 0.30))))
+          (l17 (make-seg-wrap '((0.50 0.30) (0.60 0.00)))))
+      (segments->painter (list l1 l2 l3 l4 l5 l6
+                               l7 l8 l9 l10 l11 l12
+                               l13 l14 l15 l16 l17))))
+#+end_src
+*** Transforming and combining painters
+#+begin_src scheme
+  (define (transform-painter painter origin corner1 corner2)
+    (lambda (frame)
+      (let* ((m (frame-coord-map frame))
+             (new-origin (m origin)))
+        (painter (make-frame
+                  new-origin
+                  (sub-vect (m corner1) new-origin)
+                  (sub-vect (m corner2) new-origin))))))
+
+  (define (flip-vert painter)
+    (transform-painter painter
+                       (make-vect 0.0 1.0)
+                       (make-vect 1.0 1.0)
+                       (make-vect 0.0 0.0)))
+
+  (define (shrink-to-upper-right painter)
+    (transform-painter painter
+                       (make-vect 0.5 0.5)
+                       (make-vect 1.0 0.5)
+                       (make-vect 0.5 1.0)))
+
+  (define (rotate90 painter)
+    (transform-painter painter
+                       (make-vect 1.0 0.0)
+                       (make-vect 1.0 1.0)
+                       (make-vect 0.0 0.0)))
+
+  (define (squash-inwards painter)
+    (transform-painter painter
+                       (make-vect 0.0 0.0)
+                       (make-vect 0.65 0.35)
+                       (make-vect 0.35 0.65)))
+
+  (define (beside painter1 painter2)
+    (let* ((split-point (make-vect 0.5 0.0))
+           (paint-left (transform-painter
+                        painter1
+                        (make-vect 0.0 0.0)
+                        split-point
+                        (make-vect 0.0 1.0)))
+           (paint-right (transform-painter
+                         painter2
+                         split-point
+                         (make-vect 1.0 0.0)
+                         (make-vect 0.5 1.0))))
+      (lambda (frame)
+        (paint-left frame)
+        (paint-right frame))))
+
+  ;; 2.50
+  (define (flip-horiz painter)
+    (transform-painter painter
+                       (make-vect 1.0 0.0)
+                       (make-vect 0.0 0.0)
+                       (make-vect 1.0 1.0)))
+
+  (define (rotate180 painter)
+    (transform-painter painter
+                       (make-vect 1.0 1.0)
+                       (make-vect 0.0 1.0)
+                       (make-vect 1.0 0.0)))
+
+  (define (rotate270 painter)
+    (transform-painter painter
+                       (make-vect 0.0 1.0)
+                       (make-vect 0.0 0.0)
+                       (make-vect 1.0 1.0)))
+  ;; 2.51
+  (define (below painter1 painter2)
+    (let* ((split-point (make-vect 0.0 0.5))
+          (paint-bottom (transform-painter
+                         painter1
+                         (make-vect 0.0 0.0)
+                         (make-vect 1.0 0.0)
+                         split-point))
+          (paint-up (transform-painter
+                     painter2
+                     split-point
+                     (make-vect 1.0 0.5)
+                     (make-vect 0.0 1.0))))
+      (lambda (frame)
+        (paint-bottom frame)
+        (paint-up frame))))
+
+  (define (below2 painter1 painter2)
+    (rotate90 (beside (rotate270 painter1)
+                      (rotate270 painter2))))
+#+end_src
+*** primitives drawing basic elements
+#+begin_src scheme
+  (require graphics/graphics)
+  (open-graphics)
+  (define Width 500)
+  (define Height 500)
+  ;; uncomment below line to show picture
+  (define vp (open-viewport "A Picture Language" Width Height))
+  ;;(define vp (open-pixmap "A Picture Language" Width Height))
+  (define draw (draw-viewport vp))
+  (define line (draw-line vp))
+  (define pos make-posn)
+  (define clear (clear-viewport vp))
+
+  ;(define red (make-rgb 1 .5 .5))
+  ;(draw red)
+  ;(line (pos 0 0) (pos 50 100) (make-rgb .5 .5 .5))
+  ;((draw-pixmap vp) "/home/chon/Pictures/b.png" (pos 0 0))
+
+  (define (draw-line-wrap v1 v2)
+    (line (make-posn (xcor-vect v1) (ycor-vect v1))
+          (make-posn (xcor-vect v2) (ycor-vect v2))))
+
+  (define fr (make-frame (make-vect 0.0 0.0)
+                     (make-vect Width 0.0)
+                     (make-vect 0.0 Height)))
+
+  ;;((flip-vert (square-limit wave 4)) fr)
+  ;;((flipped-pairs wave) fr)
+  ;;((flip-vert (squash-inwards (flipped-pairs wave))) fr)
+  ;;((flip-vert (right-split wave 4)) fr)
+  ((flip-vert (corner-split wave 4)) fr)
+
+  (viewport->snip vp)
+#+end_src
+*** Levels of language for robust design
+#+begin_src scheme
+  ;; 2.52
+  ;; wave with smile
+  (define wave
+      (let (
+            (l1 (make-seg-wrap '((0.20 0.00) (0.35 0.50))))
+            (l2 (make-seg-wrap '((0.35 0.50) (0.30 0.60))))
+            (l3 (make-seg-wrap '((0.30 0.60) (0.15 0.45))))
+            (l4 (make-seg-wrap '((0.15 0.45) (0.00 0.60))))
+            (l5 (make-seg-wrap '((0.00 0.80) (0.15 0.65))))
+            (l6 (make-seg-wrap '((0.15 0.65) (0.30 0.70))))
+            (l7 (make-seg-wrap '((0.30 0.70) (0.40 0.70))))
+            (l8 (make-seg-wrap '((0.40 0.70) (0.35 0.85))))
+            (l9 (make-seg-wrap '((0.35 0.85) (0.40 1.00))))
+
+            (m1 (make-seg-wrap '((0.44 0.80) (0.50 0.76))))
+            (m2 (make-seg-wrap '((0.50 0.76) (0.56 0.80))))
+            (m3 (make-seg-wrap '((0.49 0.85) (0.51 0.85))))
+            (m4 (make-seg-wrap '((0.43 0.90) (0.45 0.92))))
+            (m5 (make-seg-wrap '((0.45 0.92) (0.47 0.90))))
+            (m6 (make-seg-wrap '((0.53 0.90) (0.55 0.92))))
+            (m7 (make-seg-wrap '((0.55 0.92) (0.57 0.90))))
+
+            (l10 (make-seg-wrap '((0.60 1.00) (0.65 0.85))))
+            (l11 (make-seg-wrap '((0.65 0.85) (0.60 0.70))))
+            (l12 (make-seg-wrap '((0.60 0.70) (0.75 0.70))))
+            (l13 (make-seg-wrap '((0.75 0.70) (1.00 0.40))))
+            (l14 (make-seg-wrap '((1.00 0.20) (0.60 0.48))))
+            (l15 (make-seg-wrap '((0.60 0.48) (0.80 0.00))))
+            (l16 (make-seg-wrap '((0.40 0.00) (0.50 0.30))))
+            (l17 (make-seg-wrap '((0.50 0.30) (0.60 0.00)))))
+        (segments->painter (list l1 l2 l3 l4 l5 l6
+                                 l7 l8 l9 l10 l11 l12
+                                 l13 l14 l15 l16 l17
+                                 m1 m2 m3 m4 m5 m6 m7))))
+
+  ;; redefine corner-split
+  (define (corner-split painter n)
+      (if (= n 0)
+          painter
+          (let* ((up (up-split painter (- n 1)))
+                 (right (right-split painter (- n 1)))
+                 (top-left up) ;; do not split
+                 (bottom-right (below right right))
+                 (corner (corner-split painter (- n 1))))
+            (beside (below painter top-left)
+                    (below bottom-right corner)))))
+
+  ;; redefine higher-order operation
+  (define (square-limit painter n)
+    (let ((combine4 (square-of-four identity
+                                    rotate90
+                                    rotate180
+                                    rotate270)))
+      (combine4 (corner-split painter n))))
+#+end_src
+
+** 2.3.1 Quotation
+#+begin_src scheme
+  (define (memq item x)
+    (cond ((null? x) #f)
+          ((eq? item (car x)) x)
+          (else (memq item (cdr x)))))
+#+end_src
+
+** 2.3.2 Example: Symbolic Differentiation
+#+begin_src scheme
+  (define variable?
+    (lambda (e) (symbol? e)))
+  (define same-variable?
+    (lambda (v1 v2) (and (variable? v1) (variable? v2) (eq? v1 v2))))
+  (define sum?
+    (lambda (e) (and (pair? e) (eq? (car e) '+))))
+  (define addend
+    (lambda (e) (cadr e)))
+  (define augend
+    (lambda (e) (caddr e)))
+  (define make-sum
+    (lambda (a1 a2)
+      (cond ((=number? a1 0) a2)
+            ((=number? a2 0) a1)
+            ((and (number? a1) (number? a2))
+             (+ a1 a2))
+            (else (list '+ a1 a2)))))
+  (define (=number? exp num) (and (number? exp) (= exp num)))
+  (define product?
+    (lambda (e) (and (pair? e) (eq? (car e) '*))))
+  (define multiplier
+    (lambda (e) (cadr e)))
+  (define multiplicand
+    (lambda (e) (caddr e)))
+  (define make-product
+    (lambda (m1 m2)
+      (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+            ((=number? m1 1) m2)
+            ((=number? m2 1) m1)
+            ((and (number? m1) (number? m2)) (* m1 m2))
+            (else (list '* m1 m2)))))
+
+  (define (deriv2 exp var)
+    (cond ((number? exp) 0)
+          ((variable? exp)
+           (if (same-variable? exp var) 1 0))
+          ((sum? exp)
+           (make-sum (deriv2 (addend exp) var)
+                     (deriv2 (augend exp) var)))
+          ((product? exp)
+           (make-sum
+            (make-product (multiplier exp)
+                          (deriv2 (multiplicand exp) var))
+            (make-product (deriv2 (multiplier exp) var)
+                          (multiplicand exp))))
+          (else
+           (error 'deriv2 "unknown expression type: ~a" exp))))
+#+end_src
+
+* Exercise
+  :PROPERTIES:
+  :header-args: :tangle sicp_code.scm
+  :END:
+** 1.1.6
+*** 1.1
+Below is a sequence of expressions. What is
+the result printed by the interpreter in response to each ex-
+pression? Assume that the sequence is to be evaluated in
+the order in which it is presented
+#+begin_src scheme
+  ;;1.1
+  10
+  (+ 5 3 4)
+  (- 9 1)
+  (/ 6 2)
+  (+ (* 2 4) (- 4 6))
+  (define a 3)
+  (define b (+ a 1))
+  (+ a b (* a b))
+  (= a b)
+  (if (and (> b a) (< b (* a b)))
+      b
+      a)
+  (cond ((= a 4) 6)
+	((= b 4) (+ 6 7 a))
+	(else 25))
+  (+ 2 (if (> b a) b a))
+  (* (cond ((> a b) a)
+	   ((< a b) b)
+	   (else -1))
+     (+ a 1))
+#+end_src
+
+*** 1.2
+Translate the following expression into prefix form:
+#+begin_src scheme
+  ;;1.2
+  (/ (+ 5
+	4
+	(- 2
+	   (- 3
+	      (+ 6
+		 (/ 4 5)))))
+     (* 3
+	(- 6 2)
+	(- 2 7)))
+#+end_src
+
+*** 1.3
+Define a procedure that takes three numbers
+as arguments and returns the sum of the squares of the two
+larger numbers.
+#+begin_src scheme
+  ;;1.3
+  (define (sum-of-square-of-two-large x y z)
+    (if (> x y)
+	(if (> y z)
+	    (sum-of-squares x y)
+	    (sum-of-squares x z))
+	(if (> x z)
+	    (sum-of-squares y x)
+	    (sum-of-squares y z))))
+  ;;test
+  (sum-of-square-of-two-large 2 3 4);25
+#+end_src
+
+*** 1.4
+Observe that our model of evaluation allows
+for combinations whose operators are compound expres-
+sions. Use this observation to describe the behavior of the
+following procedure:
+#+begin_src scheme
+  ;;1.4
+  (define (a-plus-abs-b a b)
+    ((if (> b 0) + -) a b))
+  ;; the body of procedure 'a-plus-abs-b' is a combination
+  ;; whose operator is compound expression which returns
+  ;; a procedure that has two parameters.
+#+end_src
+
+*** 1.5
+#+begin_src scheme
+  ;;1.5
+  (define (p) (p))
+  (define (test x y)
+    (if (= x 0) 0 y))
+
+  ;;(test 0 (p))
+  ;;如果是自然序，只有在必要时参数才会求值，所以传入x=0时，程序能正常结束。
+
+  ;;如果是应用序，参数会先求值，再进行过程调用
+  ;;p是程序(procedure)，(p)是组合子(combination)
+  ;;按照1.1.3求值(evaluate)组合子的步骤，先求值子表达式，再将最左边的过程应用(apply)到参数
+  ;;按照1.1.5的替换模型，应用程序就是形参换成实参，再求值程序的body，即'(p)'
+  ;;这样就回到了原本求值'(p)'的问题，造成了死循环。
+
+  ;;注意程序p的body是整个'(p)'，具体看1.1.4节程序的定义
+#+end_src
+
+** 1.1.7
+*** 1.6
+~new-if~ 不是特殊形式，当求值 ~else-clause~ 时会死循环
+
+*** 1.7
+当数字很小时，固定精度0.01相对于原数字就很大了，导致结果不精确。
+比如x=0.025时，y=0.05,但计算的结果是0.07525475220305589，结果大了50%
+计算明细如下：
+#+begin_src scheme :tangle no
+1.0
+0.50125
+0.2531187655860349
+0.1314977760295123
+0.07525475220305589
+#+end_src
+当数字很大时，字长是固定的，数字越大，相邻两数差值越大，精度就无法控制在0.01内，导致死循环。
+比如计算(sqrt-nt 1e21) guess的大小会一直在31622776601.683792循环
+#+begin_src scheme
+  ;;1.7
+  (define (sqrt-nt x)
+    (define (sqrt-iter guess)
+      (begin
+	(printf "~a\n" guess)
+	(if (good-enough? guess)
+	    guess
+	    (sqrt-iter (improve guess)))))
+    (define (good-enough? guess)
+      (< (abs (- (square guess)
+		 x))
+	 0.01))
+    (define (improve guess)
+      (average guess (/ x guess)))
+    (define (average x y)
+      (/ (+ x y) 2))
+    (sqrt-iter 1.0))
+
+  ;;improve good-enough?
+  (define (sqrt-nt-imp x)
+    (define (sqrt-iter guess)
+      (begin
+	(printf "~a\n" guess)
+	(if (good-enough? guess (improve guess))
+	    (improve guess)
+	    (sqrt-iter (improve guess)))))
+    (define (good-enough? guess next)
+      (< (/ (abs (- guess next))
+	    guess)
+	 0.01))
+    (define (improve guess)
+      (average guess (/ x guess)))
+    (define (average x y)
+      (/ (+ x y) 2))
+    (sqrt-iter 1.0))
+
+  ;;test
+  ;;(sqrt-nt-imp 1e21) ;31622778383.672726
+  ;;(sqrt-nt-imp 0.025);0.05000027314445109
+#+end_src
+
+*** 1.8
+#+begin_src scheme
+  (define (cube-root x)
+    (define (cube-iter guess)
+      (if (good-enough? guess (improve guess))
+	  (improve guess)
+	  (cube-iter (improve guess))))
+    (define (good-enough? guess next)
+      (< (/ (abs (- guess next))
+	    guess)
+	 0.01))
+    (define (improve guess)
+      (average (* 2 guess)
+	       (/ x
+		  (square guess))))
+    (define (average x y)
+      (/ (+ x y) 3))
+    (cube-iter 1.0))
+
+  ;;test
+  (cube-root 423) ;7.506708135082131
+#+end_src
+
+** 1.2.1
+*** 1.9
+#+begin_src scheme :tangle no
+  ;;1.9
+  (define (+ a b)
+    (if (= a 0)
+	b
+	(inc (+ (dec a) b))))
+
+  (+ 4 5)
+  (inc (+ 3 5))
+  (inc (inc (+ 2 5)))
+  (inc (inc (inc (+ 1 5))))
+  (inc (inc (inc (inc (+ 0 5)))))
+  (inc (inc (inc (inc 5))))
+  (inc (inc (inc 6)))
+  (inc (inc 7))
+  (inc 8)
+  9
+  ;; above process is recursive
+
+  (define (+ a b)
+    (if (= a 0)
+	b
+	(+ (dec a) (inc b))))
+
+  (+ 4 5)
+  (+ 3 6)
+  (+ 2 7)
+  (+ 1 8)
+  (+ 0 9)
+  9
+  ;; above process is iterative
+#+end_src
+
+*** 1.10
+The following procedure computes a math-
+ematical function called Ackermann’s function.
+#+begin_src scheme
+  ;;1.10
+  (define (A x y)
+    (cond ((= y 0) 0)
+	  ((= x 0) (* 2 y))
+	  ((= y 1) 2)
+	  (else (A (- x 1) (A x (- y 1))))))
+
+  (A 1 10) ;1024
+  (A 2 4)  ;65536
+  (A 3 3)  ;65536
+
+  #|
+  (A 3 3)
+  (A 2 (A 3 2))
+  (A 2 (A 2 (A 3 1)))
+  (A 2 (A 2 2)
+  (A 2 (A 1 (A 2 1))))
+  (A 2 (A 1 2))
+  (A 2 (A 0 (A 1 1)))
+  (A 2 (A 0 2))
+  (A 2 (* 2 2))
+  (A 2 4)
+  (A 1 (A 2 3))
+  (A 1 (A 1 (A 2 2)))
+  (A 1 (A 1 4)) ;;由上可知(A 2 2)=4
+  (A 1 (A 0 (A 1 3)))
+  (A 1 (A 0 (A 0 (A 1 2))))
+  (A 1 (A 0 (A 0 4))) ;;(A 1 2)=4
+  (A 1 (A 0 8))
+  (A 1 16)
+  (A 0 (A 1 15))
+  (A 0 (A 0 (A 1 14)))
+  (A 0 (A 0 (...(A 1 1)))) ;;the number of 0 is 15
+  (A 0 (A 0 (...(A 0 2)))) ;; 15
+  (A 0 (A 0 (...(A 0 2*2)))) ;;14
+  (A 0 2^15)
+  2^16
+  |#
+
+  (define (f n) (A 0 n))
+  ;; f(n) = 2n
+  (f 100) ;;200
+
+  (define (g n) (A 1 n))
+  ;; g(n) = 2^n
+  (g 11) ;;2048
+
+  (define (h n) (A 2 n))
+  ;; h(n) = 2^2^2..^2  ;; the number of 2 is n.
+  #|
+  (A 2 n)
+  (A 1 (A 2 (- n 1)))
+  (A 1 (A 1 (A 2 (- n 2))))
+  (A 1 (A 1 (... (A 2 1)))) ;; the number of '(A 1' is (n-1)
+  (A 1 (A 1 (... (A 1 2)))) ;; (n-1)
+  2^2^2..^2 ;; the number of 2 is n.
+  |#
+  (h 4) ;;65536
+  ;;(- (h 5) (g 65536)) ;;0
+#+end_src
+
+** 1.2.2
+*** 1.11
+#+begin_src scheme
+  ;;1.11
+  ;;recursive
+  (define (f-rec n)
+    (if (< n 3)
+	n
+	(+ (f-rec (- n 1))
+	   (* 2
+	      (f-rec (- n 2)))
+	   (* 3
+	      (f-rec (- n 3))))))
+
+  ;;iterative
+  (define (f-iter n)
+    (define (iter x y z count)
+      (if (= count (+ n 1))
+	  x
+	  (iter (+ x (* 2 y) (* 3 z))
+		x
+		y
+		(+ count 1))))
+    (if (< n 3)
+	n
+	(iter 0 1 2 3)))
+#+end_src
+
+*** 1.12
+Pascal’s triangle.
+#+begin_src scheme
+  ;;1.12
+  (define (pascal-triangle row col)
+    (cond ((< row col) (error 'pascal-triangle "wrong arguments: row less than col"))
+	  ((or (= col 1) (= col row)) 1)
+	  (else (+ (pascal-triangle (- row 1)
+				    (- col 1))
+		   (pascal-triangle (- row 1)
+				    col)))))
+
+  ;;test
+  (pascal-triangle 1 1) ;1
+  ;(pascal-triangle 3 4) ;wrong arguments
+  (pascal-triangle 5 3) ;6
+#+end_src
+
+*** 1.13
+Prove that Fib(n) is the closest integer to φ^n/sqrt(5), where φ=(1+sqrt(5))/2, approximately equal to 1.618.
+we use qr5 denote square root of 5.
+#+begin_example :tangle no
+  fi = (1 + qr5)/2
+  psi = (1 - qr5)/2
+
+  First:
+  as the hint suggest, we are going to prove the lemma:
+  (*) Fib(n) = (fi^n - psi^n)/qr5
+
+  1) prove the basic case when n=0 and n=1
+  Fib(0) = 0
+  (fi^0 - psi^0)/qr5 = (1 - 1)/qr5 = 0
+
+  Fib(1) = 1
+  (fi^1 - psi^1)/qr5
+  =((1+qr5)/2 - (1-qr5)/2)/qr5
+  =1/2(1+qr5 - 1 + qr5)/qr5
+  =1/2(2qr5)/qr5
+  =1
+
+  2) suppose when n=n-1 or n=n-2, the lemma is success.
+
+  3) then when n=n, according to the definition of the Fibonacci numbers:
+  Fib(n) = Fib(n-1) + Fib(n-2)
+  = (fi^(n-1) - psi^(n-1))/qr5 + (fi^(n-2) - psi^(n-2))/qr5
+  = 1/qr5( fi^(n-2)(fi + 1) - psi^(n-2)(psi + 1) )
+  = 1/qr5( fi^(n-2)*fi^2 - psi^(n-2)*psi^2 )  ;;NOTE
+  = 1/qr5( fi^n - psi^n)
+  proved.
+
+  NOTE: because fi and psi are the two roots of equation: x^2 = x + 1, we have:
+  fi + 1 = fi^2
+  psi + 1 = psi^2
+
+  Then:
+  we are going to prove that Fib(n) is the closest integer to fi^n/qr5.
+
+  according to lemma:
+  Fib(n) = (fi^n - psi^n)/qr5
+  Fib(n) - fi^n/qr5 = - psi^n/qr5
+  abs(Fib(n) - fi^n/qr5) = abs(psi^n/qr5)
+
+  we are going to prove abs(psi^n/qr5) is less than 0.5
+
+  psi = (1 - qr5)/2 ~= -0.618 so when n>=0: abs(psi^n) <= 1
+  qr5 ~= 2.2, so 1/qr5 < 1/2
+
+  we have:
+  abs(psi^n/qr5)
+  =abs(psi^n)* 1/qr5
+  < 1 * 1/2 = 0.5
+  proved.
+#+end_example
+
+** 1.2.3
+*** 1.14
+#+begin_src scheme
+  (define (count-change-debug amount)
+    (define (cc amount kind-of-coins depth)
+      (begin
+	(printf "\n")
+	(indent depth)
+	(printf "(~a, ~a, ~a)" amount kind-of-coins depth)
+	(cond ((or (< amount 0)(= kind-of-coins 0)) 0)
+	      ((= amount 0) 1)
+	      (else
+	       (+ (cc (- amount
+			 (first-domination kind-of-coins))
+		      kind-of-coins
+		      (+ depth 1))
+		  (cc amount
+		      (- kind-of-coins 1)
+		      (+ depth 1)))))))
+    (define (first-domination n)
+      (cond ((= n 1) 1)
+	    ((= n 2) 5)
+	    ((= n 3) 10)
+	    ((= n 4) 25)
+	    ((= n 5) 50)))
+    (define (indent depth)
+      (cond ((<= depth 0) '())
+	    (else
+	     (printf " ")
+	     (indent (- depth 1)))))
+    (cc amount 5 0))
+
+  ;; 空间复杂度
+  ;; 由下图可知，[(11, 5, 0), (11, 1, 4)]需要5次调用，((11, 1, 4), (0, 1, 15)]需要11次调用，总共16次调用
+  ;; 所以空间复杂度是货币数5+金额n，即5+n。
+  ;; 所以空间复杂度: O(n)=n
+
+  ;; 时间复杂度
+  #|
+  对于(cc n 1),需要ceiling(n/1)+1+n，即2n+1步。记为a(n)=2n+1
+  对于(cc n 2),需要ceiling(n/5)+1 + {a(n)+ a(n-5) + a(n-10) + ...}步。根据等比公式约为b(n)= 2n^2/5 (忽略一次的n)
+  对于(cc n 3)，需要ceiling(n/10)+1 +{b(n) + b(n-10) + b(n-20) + ...}步。约为c(n) = 2n^3/(5*10)
+  对于(cc n 4), 需要的步数约为: d(n) = 2n^4/(5*10*25)
+  对于(cc n 5), 需要的步数约为：e(n) = 2n^5/(5*10*25*50)
+  |#
+
+  ;(count-change-debug 11) ;4
+  ;; the tree of the process. the three tuple denote (amount, kind-of-coins, depth)
+  ;; each parent has only two children.
+  #|
+  (11, 5, 0)
+      (-39, 5, 1)
+      (11, 4, 1)
+	  (-14, 4, 2)
+	  (11, 3, 2)
+	      (1, 3, 3)
+		  (-9, 3, 4)
+		  (1, 2, 4)
+		      (-4, 2, 5)
+		      (1, 1, 5)
+			  (0, 1, 6)
+			  (1, 0, 6)
+	      (11, 2, 3)
+		  (6, 2, 4)
+		      (1, 2, 5)
+			  (-4, 2, 6)
+			  (1, 1, 6)
+			      (0, 1, 7)
+			      (1, 0, 7)
+		      (6, 1, 5)
+			  (5, 1, 6)
+			      (4, 1, 7)
+				  (3, 1, 8)
+				      (2, 1, 9)
+					  (1, 1, 10)
+					      (0, 1, 11)
+					      (1, 0, 11)
+					  (2, 0, 10)
+				      (3, 0, 9)
+				  (4, 0, 8)
+			      (5, 0, 7)
+			  (6, 0, 6)
+		  (11, 1, 4)
+		      (10, 1, 5)
+			  (9, 1, 6)
+			      (8, 1, 7)
+				  (7, 1, 8)
+				      (6, 1, 9)
+					  (5, 1, 10)
+					      (4, 1, 11)
+						  (3, 1, 12)
+						      (2, 1, 13)
+							  (1, 1, 14)
+							      (0, 1, 15)
+							      (1, 0, 15)
+							  (2, 0, 14)
+						      (3, 0, 13)
+						  (4, 0, 12)
+					      (5, 0, 11)
+					  (6, 0, 10)
+				      (7, 0, 9)
+				  (8, 0, 8)
+			      (9, 0, 7)
+			  (10, 0, 6)
+		      (11, 0, 5)
+  |#
+#+end_src
+
+*** 1.15
+#+begin_src scheme
+  ;;1.15
+  (define (sine angle)
+    (define (cube x) (* x x x))
+    (define (p x)
+      (begin
+	(printf "called\n")
+	(- (* 3 x)
+	   (* 4 (cube x)))))
+    (if (not (> (abs angle) 0.1))
+	angle
+	(p (sine (/ angle 3.0)))))
+
+  ;;a.How many times is the procedure p applied when (sine 12.15) is evaluated?
+  ;; 12.15/3^x < 0.1 => 3^x > 121.5 => x > log3(121.5) = 5.
+  (sine 12.15);
+  (ceiling (/ (log 121.5) (log 3))) ;5.0
+
+  ;;b. time and space complexity.
+  ;;计算(sine a)时，如a所示，时间复杂度是：O(n) = log(n)
+  ;;空间复杂度也是递归调用的次数：O(n) = log(n)
+#+end_src
+
+** 1.2.4 Exponentiation
+*** 1.16
+Iterative exponentiation process.
+#+begin_src scheme
+  ;;1.16
+  ;; In general, the technique of defining an invariant quantity
+  ;; that remains unchanged from state to state is a powerful
+  ;; way to think about the design of iterative algorithms
+  (define (fast-expt-iter b n)
+     ;; invariant: a*b^n
+    (define (iter b n a)
+      (cond ((= n 0) a)
+	    ((even? n) (iter (* b b)
+			     (/ n 2)
+			     a))
+	    (else (iter b
+			(- n 1)
+			(* a b)))))
+    (iter b n 1))
+
+  (fast-expt-iter 2 10)
+#+end_src
+
+*** 1.17
+用类似fast-expt 的方法进行快速的整数相乘(* a b), 注意到：
+当b为偶数时：a*b = 2*a*(b/2)；当b为奇数时：a*b=a+a*(b-1)
+可以写出如下递归算法：
+#+begin_src scheme
+  (define (mul-rec a b)
+    (define (double n) (+ n n))
+    (define (halve n)
+      (if (even? n)
+	  (/ n 2)
+	  (error 'mul-rec "not even")))
+    (cond ((= b 0) 0)
+	  ((even? b) (double (mul-rec a(halve b))))
+	  (else (+ a (mul-rec a (- b 1))))))
+
+  (mul-rec 3 4) ;12
+#+end_src
+
+*** 1.18
+使用迭代的方法计算(* a b)。注意到：
+当b为偶数时：a*b = (2a)*(b/2)；当b为奇数时：a*b=a+a*(b-1)。使用迭代，就无法使用a+a*b的形式，因为`+`会被延后执行。
+所以我们需要另外的参数k，来保存需要累加的数值。并有如下不变式：m*n+k的值不变。
+当开始计算时: m=a,n=b,k=0 不变式等于a*b。当n=0时，m*n=0,不变式m*n+k=a*b => k=a*b
+#+begin_src scheme
+  (define (mul-iter m n)
+    (define (double x) (+ x x))
+    (define (halve x)
+      (if (even? x)
+	  (/ x 2)
+	  (error 'mul-iter "not even.")))
+    (define (iter m n k)
+      (cond ((= n 0) k)
+	    ((even? n) (iter (double m)
+				 (halve n)
+				 k))
+	    (else (iter m
+			    (- n 1)
+			    (+ m k)))))
+    (iter m n 0))
+
+  (mul-iter 3 8) ;24
+  (mul-iter 3 7) ;21
+#+end_src
+
+*** 1.19
+时间复杂度只有log(n)的Fibonacci数列计算算法。
+a<-a+b, b<-a.可以用矩阵表示如下，n表示经过了n次转换。类似前面的fast-expt和fast-mul，我们也可以求矩阵平方的方式快速计算Fib。
+#+begin_example
+               [1 1]^n
+[a b] = [a b]  [1 0]
+#+end_example
+根据提示a<-bq + aq + ap, b<-bp+aq. 可以把矩阵表示如下：
+#+begin_example
+               [p+q q]^n
+[a b] = [a b]  [q   p]
+#+end_example
+当n为奇数时
+#+begin_example
+	       [p+q q][p+q q]^(n-1)                   [p+q q]^(n-1)
+  [a b] = [a b][q   p][q   p]       = [bq+aq+ap bp+aq][q   p]
+#+end_example
+当n为偶数时
+#+begin_example
+	       [p+q q]^2(n/2)       [(p+q)^2+q^2 q^2+2pq]^(n/2)
+  [a b] = [a b][q   p]       = [a b][q^2+2pq     q^2+p^2]
+#+end_example
+
+#+begin_src scheme
+  ;;1.19
+  (define (fib n)
+    (define (fib-iter a b p q count)
+      (cond ((= count 0) b)
+	    ((even? count)
+	     (fib-iter a
+		       b
+		       (+ (* p p)
+			  (* q q))
+		       (+ (* q q)
+			  (* 2 p q))
+		       (/ count 2)))
+	    (else (fib-iter (+ (* b q) (* a q) (* a p))
+			    (+ (* b p) (* a q))
+			    p
+			    q
+			    (- count 1)))))
+      (fib-iter 1 0 0 1 n))
+
+  (fib 700)
+#+end_src
+
+** 1.2.5 Greatest Common Divisors
+*** 1.20
+当采用迭代程序(procedure) *gcd* 计算 *(gcd 206 40)* 时，应用序和自然序分别会产生什么样的过程(process)？其中 *remainder* 程序实际运行了几次？
+#+begin_src scheme
+  (define (gcd a b)
+    (if (= b 0)
+	a
+	(gcd b (remainder a b))))
+  ;;normal-order evaluation:
+  (gcd 206 40)
+  (gcd 40 (remainder 206 40)) ;;eval remainder once gets 6
+  (gcd (remainder 206 40) (remainder 40 (remainder 206 40))) ;; eval remainder twice gets 4
+  (gcd (remainder 40 (remainder 206 40))
+       (remainder (remainder 206 40)
+		  (remainder 40 (remainder 206 40)))) ;; eval remainder 4 times gets 2
+  (gcd (remainder (remainder 206 40)
+		  (remainder 40 (remainder 206 40)))
+       (remainder (remainder 40 (remainder 206 40))
+		  (remainder (remainder 206 40)
+			     (remainder 40 (remainder 206 40))))) ;; eval remainder 7 times gets 0
+  (remainder (remainder 206 40)
+	     (remainder 40 (remainder 206 40))) ;; eval remainder 4 times gets 2
+  2
+  ;; 总共计算了18次
+  ;; 从上面的计算可以看出，每次计算remainder的次数时前两次的和再加1，最后在加上计算a次数。
+  ;; count(n) = count(n-1) + count(n-2) + 1
+  ;; 计算步数时log(b)，每次计算次数是Fib(n)，所以计算remainder的总次数是O(b).
+
+  ;;applicative-order evaluation:
+  (gcd 206 40)
+  (gcd 40 (remainder 206 40)) ; eval remainder once gets 6
+  (gcd 6 (remainder 40 6))    ; eval remainder once gets 4
+  (gcd 4 (remainder 6 4))     ; eval remainder once gets 2
+  (gcd 2 (remainder 4 2))     ; eval remainder once gets 0
+  2
+  ;; 总共计算remainder4次。计算remiander的总次数是O(logb).
+#+end_src
+
+** 1.2.6 Example: Testing for Primality
+*** 1.21
+#+begin_src scheme
+  (smallest-divisor 199) ;199
+  (smallest-divisor 1999) ;1999
+  (smallest-divisor 19999) ;7
+#+end_src
+
+*** 1.22
+#+begin_src scheme
+  (define (timed-prime-test n)
+    (define (start-prime-test n start-time)
+      (if (prime? n)
+	  (report-prime (time-difference (runtime) start-time))
+	  '()))
+    (define (report-prime elapsed-time)
+      (begin (display " *** ")
+	     (display elapsed-time)))
+    (define (runtime) (current-time))
+    (begin (newline)
+	   (display n)
+	   (start-prime-test n (runtime))))
+
+  (define (search-for-primes start count)
+    (define (iter n count)
+      (cond ((= count 0) '())
+	    ((prime? n)
+	     (begin
+	       (timed-prime-test n)
+	       (iter (+ n 2) (- count 1))))
+	    (else
+	     (iter (+ n 2) count))))
+    (if (even? start)
+	(iter (+ start 1) count)
+	(iter start count)))
+
+  ;; (search-for-primes 1e8 3) ;1
+  ;; (search-for-primes 1e9 3) ;3
+  ;; (search-for-primes 1e10 3);10
+  ;; (search-for-primes 1e11 3);30
+  ;; (search-for-primes 1e12 3);94
+  ;; (search-for-primes 1e13 3);296
+  ;; (search-for-primes 1e14 3);935
+  ;;(search-for-primes 1e15 3);3000
+  ;;从1e8测试到1e15,耗时基本都满足与sqrt(10)的比率。说明计算步骤越多，耗时越长的判断是准确的。
+  ;;但计算1e16时，耗时很长无法结束，说明机器资源是有限的，比如字长、cpu、内存、寄存器等。超出范围后，计算耗时与步骤就不成比例了。
+#+end_src
+
+*** 1.23
+#+begin_src scheme
+  ;;1.23
+  (define (smallest-divisor n)
+    (define (find-divisor test-divisor)
+      (cond ((> (square test-divisor) n) n)
+	    ((divides? test-divisor n) test-divisor)
+	    (else (find-divisor (next test-divisor)))))
+    (define (divides? a b) (= (remainder b a) 0))
+    (define (next n)
+      (if (= n 2)
+	  3
+	  (+ n 2)))
+    (find-divisor 2))
+
+  ;; (search-for-primes 1e8 3) ;1     0.33
+  ;; (search-for-primes 1e9 3) ;3     1.33
+  ;; (search-for-primes 1e10 3);10    5
+  ;; (search-for-primes 1e11 3);30    18
+  ;; (search-for-primes 1e12 3);94    52
+  ;; (search-for-primes 1e13 3);296   177
+  ;; (search-for-primes 1e14 3);935   563
+  ;;(search-for-primes 1e15 3);3000  1790
+
+  ;;用(next test-divisor)代替(+ test-divisor 1)后，按理速度会快50%。
+  ;;实际测量时，数据小时大概快50%，数据大时大概快了40%
+  ;;没有快两倍的原因可能是，计算next也要耗时？毕竟多了一个if判断。
+  ;;比如一个迭代的find-divisor需要10步，计算next也需要2步，12/20=60%,提升40%.
+#+end_src
+
+*** 1.24
+测量费马检测的性能
+#+begin_src scheme
+  ;; 1.24
+  (define (timed-prime-test-fast n)
+    (define (start-prime-test n start-time)
+      (if (fast-prime? n 10)
+	  (report-prime (time-difference (runtime) start-time))
+	  '()))
+    (define (report-prime elapsed-time)
+      (begin (display " *** ")
+	     (display elapsed-time)))
+    (define (runtime) (current-time))
+    (begin (newline)
+	   (display n)
+	   (start-prime-test n (runtime))))
+
+  (define (search-for-primes-fast start count)
+    (define (iter n count)
+      (cond ((= count 0) '())
+	    ((fast-prime? n 10)
+	     (begin
+	       (timed-prime-test-fast n)
+	       (iter (+ n 2) (- count 1))))
+	    (else
+	     (iter (+ n 2) count))))
+    (if (even? start)
+	(iter (+ start 1) count)
+	(iter start count)))
+
+  ;; (search-for-primes-fast 100000000 3)
+  ;; (search-for-primes-fast 1000000000 3)
+  ;; (search-for-primes-fast 10000000000 3)
+  ;; (search-for-primes-fast 100000000000 3)
+  ;; (search-for-primes-fast 1000000000000 3)
+  ;; (search-for-primes-fast 10000000000000 3)
+  ;; (search-for-primes-fast 10000000000000000000 3)
+  ;;输入(search-for-primes-fast 1e9 3)会导致卡死
+#+end_src
+
+*** 1.25
+直接用fast-expt计算会导致数据变很大。字长不够用，导致运行速度下降。
+
+*** 1.26
+expmod调用了自身两次，会产生类似Fib的树形结构，每个计算步骤都会产生较上个步骤两倍的调用。
+计算步骤是logN,则expmod的调用总次数是2^(logN)=N.
+*** 1.27
+#+begin_src scheme
+  (define (full-fermat-test n)
+    (define (fft n a)
+      (cond ((= n a) #t)
+	    ((= (expmod a n n) a)
+	     (fft n (+ a 1)))
+	    (else #f)))
+    (fft n 1))
+
+  (full-fermat-test 561)
+  (full-fermat-test 1105)
+  (full-fermat-test 1729)
+  (full-fermat-test 2465)
+  (full-fermat-test 2821)
+  (full-fermat-test 6601)
+#+end_src
+
+*** 1.28
+#+begin_src scheme
+  (define (miller-rabin? n times)
+    (define (expmod base exp)
+      (cond ((= exp 0) 1)
+	    ((even? exp)
+	     (remainder
+	      (check exp (square (expmod base (/ exp 2))))
+	      n))
+	    (else
+	     (remainder
+	      (* base (expmod base (- exp 1)))
+	      n))))
+    (define (check exp sq)
+      (cond ((or (= exp 1) (= exp (- n 1))) sq)
+	    ((= (remainder sq n) 1) 0)
+	    (else sq)))
+    (define (fermat-test)
+      (define (try-it a)
+	(= (expmod a (- n 1)) a))
+      (try-it (+ 1 (floor (random (- n 1))))))
+    (cond ((= times 0) #t)
+	  ((fermat-test) (miller-rabin? n (- times 1)))
+	  (else #f)))
+
+
+  (miller-rabin? 21    3)
+  (miller-rabin? 78   10)
+  (miller-rabin? 561  10)
+  (miller-rabin? 1105 10)
+  (miller-rabin? 1729 10)
+  (miller-rabin? 2465 10)
+  (miller-rabin? 2821 10)
+  (miller-rabin? 6601 10)
+#+end_src
+
+** 1.3 Formulating Abstractions with Higher-Order Procedure
+** 1.3.1 Procedures as Arguments
+*** 1.29
+Simpson's Rule可以更加准确的计算函数积分。
+h/3(y0 + 4y1 + 2y2 + 4y3 + 2y4 + ... + 2y(n-2) + 4y(n-1) + yn), 其中h=(b-a)/n, yk=f(a+kh).
+#+begin_src scheme
+  (define (integral-simpson f a b n)
+    (define h (/ (- b a) n 1.0))
+    (define (add-dx x)
+      (+ x 1))
+    (define (fw k)
+      (cond ((= k 0) (f a))
+	    ((= k n) (f b))
+	    ((even? k) (* 2
+			  (f (+ a
+				(* k h)))))
+	    (else (* 4
+		     (f (+ a
+			   (* k h)))))))
+    (* (/ h 3.0)
+       (sum fw 0 add-dx n)))
+
+  (integral-simpson cube 0 1 100) ; 0.24999999999999992
+  (integral cube 0 1 0.01)        ; 0.24998750000000042
+  (integral-simpson cube 0 1 1000); 0.2500000000000003
+  (integral cube 0 1 0.001)       ; 0.249999875000001
+#+end_src
+
+*** 1.30
+将sum程序由线性递归改为线性迭代。
+#+begin_src scheme
+  (define (sum term a next b)
+    (define (iter a result)
+      (if (> a b)
+	  result
+	  (iter (next a) (+ result
+			    (term a)))))
+    (iter a 0))
+#+end_src
+
+*** 1.31
+a. 类似sum，写个product，用product计算factorial，用product计算Pi。
+#+begin_src scheme
+  (define (product term a next b)
+    (define (iter a result)
+      (if (> a b)
+	  result
+	  (iter (next a)
+		(* result (term a)))))
+    (iter a 1))
+
+  (define (factorial n)
+    (product (lambda (x) x)
+	     1
+	     (lambda (x) (+ x 1))
+	     n))
+
+  (factorial 5)
+
+#+end_src
+使用product计算Pi的值
+#+begin_src scheme
+  (define (pi-product n)
+    (define (pi n)
+      (* (product (lambda (k) (/ (* 4.0 k (+ k 1))
+			 (square (+ (* 2 k) 1))))
+	       1
+	       (lambda (x) (+ x 1))
+	       n)
+	 4))
+    (if (< n 1)
+	(pi 1)
+	(pi n)))
+#+end_src
+b.将product改写为recursive process.
+#+begin_src scheme
+  (define (product-rec term a next b)
+    (if (> a b)
+	1
+	(* (term a)
+	   (product-rec term
+			(next a)
+			next
+			b))))
+#+end_src
+
+*** 1.32
+accmulate类似与Haskell的 ~foldr::(a->b->b) -> b -> [a] -> b~
+a.将sum和product进一步抽象，得到accumulate，并用accumulate表示sum和product.
+#+begin_src scheme
+  (define (accumulate combiner null-value term a next b)
+    (if (> a b)
+	null-value
+	(combiner (term a)
+		  (accumulate combiner null-value term (next a) next b))))
+
+  (define (sum term a next b)
+    (accumulate + 0 term a next b))
+
+  (define (product term a next b)
+    (accumulate * 1 term a next b))
+
+  (pi-product 20)
+#+end_src
+b.
+#+begin_src scheme
+  (define (accumulate combiner null-value term a next b)
+    (define (iter a result)
+      (if (> a b)
+	  result
+	  (iter (next a)
+		(combiner result
+			  (term a)))))
+    (iter a null-value))
+
+  (pi-product 20) ; 3.1792124971865316
+#+end_src
+
+*** 1.33
+#+begin_src scheme :tangle no
+  (define (filtered-accumulate filter combiner null-value term a next b)
+    (if (> a b)
+	null-value
+	(if (filter a)
+	    (combiner (term a)
+		      (filtered-accumulate filter combiner null-value term (next a) next b))
+	    (filtered-accumulate filter combiner null-value term (next a) next b))))
+
+  (define (sum-of-square-of-prime a b)
+    (filtered-accumulate (lambda (x) (prime? x))
+			 +
+			 0
+			 square
+			 a
+			 (lambda (x) (+ x 1))
+			 b))
+
+  (sum-of-square-of-prime 1 5) ;39
+
+  (define (product-of-relative-prime n)
+    (define (filter x) (= (gcd n x) 1))
+    (define (next x) (+ x 1))
+    (define (term x) x)
+    (filtered-accumulate filter * 1 term 1 next n))
+
+  (product-of-relative-prime 5) ;24
+#+end_src
+
+** 1.3.2 Contructing Procedures Using lambda
+*** 1.34
+#+begin_example
+  (define (f g) (g 2))
+  运行(f f)报错：Exception: attempt to apply non-procedure 2
+  分析如下：
+  (f1 f2) 求值左右表达式都得到过程#<procedure f>，然后apply该过程得到：
+  (f2 2) 同样求值左右表达式后，apply过程得到：
+  (2 2) 报错2不是过程。
+#+end_example
+
+** 1.3.3 Procedures as General Methods
+对于函数f(x)，如果x0满足等式f(x0)=x0，那么称x0为函数f(x)的不动点。
+我们可以通过迭代的应用f得到不动点：f(x),f(f(x)),f(f(f(x))),...
+#+begin_src scheme
+  (define tolerance 0.00001)
+  (define (fixed-point f first-guess)
+    (define (close-enough? v1 v2)
+      (< (abs (- v1 v2)) tolerance))
+    (define (try guess)
+      (let ((next (f guess)))
+	(if (close-enough? guess next)
+	    next
+	    (try next))))
+    (try first-guess))
+
+  (fixed-point cos 1.0)
+#+end_src
+
+*** 1.35
+golden ratio fi is the root of equation: x^2=x+1, so fi is the fixpoint of function:f(x)=1+1/x.
+#+begin_src scheme
+  (define (fi-fixpoint)
+    (fixed-point (lambda (x) (+ 1
+			 (/ 1 x)))
+	       1.0))
+  (fi-fixpoint)
+#+end_src
+
+*** 1.36
+#+begin_src scheme
+  (define (fixed-point f first-guess)
+    (define (close-enough? v1 v2)
+      (< (abs (- v1 v2)) tolerance))
+    (define (try guess)
+      (begin
+	(printf "~a\n" guess)
+	(let ((next (f guess)))
+	  (if (close-enough? guess next)
+	      next
+	      (try next)))))
+    (try first-guess))
+
+  (define (x-exp-x)
+    (fixed-point (lambda (x) (/ (log 1000)
+			   (log x)))
+		 2.0))
+
+  (define (x-exp-x-damping)
+    (define (avg a b) (/ (+ a b) 2))
+    (fixed-point (lambda (x) (avg x
+			     (/ (log 1000)
+				(log x))))
+		 2.0))
+
+  (x-exp-x)
+  ;; 9.965784284662087
+  ;; 3.004472209841214
+  ;; 6.279195757507157
+  ;; 3.759850702401539
+  ;; 5.215843784925895
+  ;; 4.182207192401397
+  ;; 4.8277650983445906
+  ;; 4.387593384662677
+  ;; 4.671250085763899
+  ;; 4.481403616895052
+  ;; 4.6053657460929
+  ;; 4.5230849678718865
+  ;; 4.577114682047341
+  ;; 4.541382480151454
+  ;; 4.564903245230833
+  ;; 4.549372679303342
+  ;; 4.559606491913287
+  ;; 4.552853875788271
+  ;; 4.557305529748263
+  ;; 4.554369064436181
+  ;; 4.556305311532999
+  ;; 4.555028263573554
+  ;; 4.555870396702851
+  ;; 4.555315001192079
+  ;; 4.5556812635433275
+  ;; 4.555439715736846
+  ;; 4.555599009998291
+  ;; 4.555493957531389
+  ;; 4.555563237292884
+  ;; 4.555517548417651
+  ;; 4.555547679306398
+  ;; 4.555527808516254
+  ;; 4.555540912917957
+  ;; 4.555532270803653
+  ;; total 34 lines
+
+  (x-exp-x-damping)
+  ;; 5.9828921423310435
+  ;; 4.922168721308343
+  ;; 4.628224318195455
+  ;; 4.568346513136242
+  ;; 4.5577305909237005
+  ;; 4.555909809045131
+  ;; 4.555599411610624
+  ;; 4.5555465521473675
+  ;; 4.555537551999825
+  ;; total 9 lines
+#+end_src
+
+*** 1.37
+a.
+#+begin_src scheme
+  (define (cont-frac n d k)
+    (define (cf n d x k)
+      (if (> x k)
+	  0
+	  (/ (n x)
+	     (+ (d x)
+		(cf n d (+ x 1) k)))))
+    (cf n d 1 k))
+
+  (cont-frac (lambda (i) 1.0)
+	     (lambda (i) 1.0)
+	     100)
+
+  (define tolerance 0.0001)
+
+  (define (find-k n d t)
+    (define (iter k result)
+      (let ((next (cont-frac n d k)))
+	(if (good-enough? next result)
+	    (+ k 1)
+	    (iter (+ k 1) next))))
+    (define (good-enough? a b)
+      (< (abs (- a b)) t))
+    (iter 1 0))
+
+  (find-k (lambda (i) 1.0)
+	  (lambda (i) 1.0)
+	  tolerance) ;; 15
+  ;;至少需要15次才能精确到4位小数。
+#+end_src
+b. iterative process. start from lowest case.
+#+begin_src scheme
+  (define (cont-frac-iter n d k)
+    (define (iter x result)
+      (if (= x 0)
+	  result
+	  (iter (- x 1)
+		(/ (n x)
+		   (+ (d x)
+		      result)))))
+    (if (< k 1)
+	(iter 1 0)
+	(iter k 0)))
+
+  (cont-frac (lambda (i) 1.0)
+	     (lambda (i) 1.0)
+	     100)
+#+end_src
+
+*** 1.38
+#+begin_src scheme
+  (define (div a b)
+    (floor (/ a b)))
+
+  (define (e-euler-expansion k)
+    (+ 2
+       (cont-frac-iter (lambda (i) 1)
+                       (lambda (i) (cond ((= i 1) 1.0)
+                                    ((= i 2) 2)
+                                    ((= (remainder i 3) 2)
+                                     (* 2
+                                        (+ 1 (div i 3))))
+                                    (else 1)))
+                       k)))
+
+  (e-euler-expansion 1000);2.7182818284590455
+#+end_src
+
+*** 1.39
+#+begin_src scheme
+  (define (tan-cf x k)
+    (cont-frac-iter (lambda (i) (if (= i 1)
+			       x
+			       (- (* x x))))
+		    (lambda (i) (- (* 2 i) 1.))
+		    k))
+
+  (tan-cf 2 100)
+#+end_src
+
+** 1.3.4
+*** 1.40
+#+begin_src scheme
+  (define (cubic a b c)
+    (lambda (x) (+ (cube x)
+              (* a (square x))
+              (* b x)
+              c)))
+
+  (newtons-method (cubic 1 3 2) 1)
+#+end_src
+
+*** 1.41
+#+begin_src scheme
+  (define (double g)
+    (lambda (x) (g (g x))))
+
+  (define (inc x)
+    (+ x 1))
+
+  (((double (double double)) inc) 5) ;21
+#+end_src
+
+*** 1.42
+#+begin_src scheme
+  (define (compose f g)
+    (lambda (x) (f (g x))))
+
+  ((compose square inc) 6) ;49
+#+end_src
+
+*** 1.43
+#+begin_src scheme
+  (define (repeated f n)
+    (if (= n 1)
+        f
+        (compose f (repeated f (- n 1)))))
+
+  ((repeated square 2) 5)
+
+  (define (repeated f n)
+    (define (iter k result)
+      (if (= k n)
+          result
+          (iter (+ k 1) (compose f result))))
+    (iter 1 f))
+#+end_src
+
+*** 1.44
+#+begin_src scheme
+  (define (smooth f)
+    (lambda (x) (/ (+ (f x)
+                 (f (- x dx))
+                 (f (+ x dx)))
+              3.0)))
+
+  (define (smooth-nth f n)
+    ((repeated smooth n) f))
+
+  ((smooth-nth square 1) 2)
+#+end_src
+
+*** 1.45
+使用average-dampling求解fixed-point时,可能无法收敛,就需要进行多次的average-damping.
+#+begin_src scheme
+  (define (fourth-root x)
+    (fixed-point ((repeated average-damp 2)
+                  (lambda (y) (/ x (cube y))))
+                 1.0))
+
+  (fourth-root 2)
+
+  (define (nth-root x n)
+    (fixed-point-of-transform (lambda (y) (/ x (fast-expt y (- n 1))))
+                              (repeated average-damp (floor (/ (log n) (log 2))))
+                              1.0))
+  #|
+  average-damp   n
+  1              1-3
+  2              4-7
+  3              8-15
+  4              16-31
+  |#
+
+
+  (nth-root 2 4346) ;1.000168996396237
+
+
+#+end_src
+
+*** 1.46
+#+begin_src scheme
+  (define (iterative-improve good-enough? improve)
+    (define (iter x)
+      (if (good-enough? x)
+          x
+          (iter (improve x))))
+    iter)
+
+  (define (sqrt x)
+    ((iterative-improve
+      (lambda (guess) (< (abs (- (square guess) x)) 0.001))
+      (lambda (guess) (average guess (/ x guess))))
+     1.0))
+
+  (define (fixed-point f first-guess)
+    ((iterative-improve
+      (lambda (guess) (< (abs (- guess (f guess)))
+                    0.001))
+      (lambda (guess) (f guess)))
+     first-guess))
+#+end_src
+
+** 2.1.1
+*** 2.1
+#+begin_src scheme
+  (define (make-rat n d)
+    (let* ((u (* (sign d) n))
+           (v (abs d))
+           (g (gcd (abs u) v)))
+      (cons (/ u g) (/ v g))))
+
+  (define (sign x)
+    (cond ((< x 0) -1)
+          ((= x 0) 0)
+          ((> x 0) 1)))
+#+end_src
+
+** 2.1.2
+*** 2.2
+#+begin_src scheme
+  (define (make-point x y) (cons x y))
+
+  (define (x-point p) (car p))
+
+  (define (y-point p) (cdr p))
+
+  (define (make-segment a b) (cons a b))
+
+  (define (start-segment s) (car s))
+
+  (define (end-segment s) (cdr s))
+
+  (define (print-point p)
+    (newline)
+    (display "(")
+    (display (x-point p))
+    (display ",")
+    (display (y-point p))
+    (display ")"))
+
+  (define (midpoint-segment s)
+    (let ((x (average (x-point (start-segment s))
+                      (x-point (end-segment s))))
+          (y (average (y-point (start-segment s))
+                      (y-point (end-segment s)))))
+      (make-point x y)))
+#+end_src
+
+*** 2.3
+#+begin_src scheme
+  ;; first
+  (define (make-rect a b) (cons a b))
+
+  (define (blpoint-rect r) (car r))
+
+  (define (trpoint-rect r) (cdr r))
+
+  ;; second
+  (define (make-rect a b) (make-segment a b))
+
+  (define (blpoint-rect r) (start-segment r))
+
+  (define (trpoint-rect r) (end-segment r))
+
+  ;;
+  (define (length-rect r)
+    (abs (- (x-point (blpoint-rect r))
+            (x-point (trpoint-rect r)))))
+
+  (define (width-rect r)
+    (abs (- (y-point (blpoint-rect r))
+            (y-point (trpoint-rect r)))))
+
+  (define (perimeter-rect r)
+    (* 2 (+ (length-rect r)
+            (width-rect r))))
+
+  (define (area-rect r)
+    (* (length-rect r)
+       (width-rect r)))
+#+end_src
+
+** 2.1.3
+*** 2.4
+#+begin_src scheme
+  (define (cons-my x y)
+    (lambda (m) (m x y)))
+
+  (define (car-my z)
+    (z (lambda (p q) p)))
+
+  (define (cdr-my z)
+    (z (lambda (p q) q)))
+
+  #|
+  (car' z)
+  (z (lambda (p q) p))
+  ((lambda (p q) p) x y)
+  x
+  |#
+#+end_src
+
+*** 2.5
+#+begin_src scheme
+  (define (cons-int a b)
+    (* (fast-expt 2 a)
+       (fast-expt 3 b)))
+
+  (define (car-int x)
+    (define (iter x a)
+      (if (= (remainder x 2) 0)
+          (iter (/ x 2) (+ a 1))
+          a))
+    (iter x 0))
+
+  (define (cdr-int x)
+    (define (iter x a)
+      (if (= (remainder x 3) 0)
+          (iter (/ x 3) (+ a 1))
+          a))
+    (iter x 0))
+
+  ;; 抽取公共代码
+  (define (select x n)
+    (define (iter x a)
+      (if (= (remainder x n) 0)
+          (iter (/ x n) (+ a 1))
+          a))
+    (iter x 0))
+
+  ;; 可以重写为
+  (define (car-int x)
+    (select x 2))
+
+  (define (cdr-int x)
+    (select x 3))
+#+end_src
+
+*** 2.6
+#+begin_src scheme
+  (define zero (lambda (f) (lambda (x) x)))
+
+  (define (add-1 n)
+    (lambda (f) (lambda (x) (f ((n f) x)))))
+
+  (add-1 zero)
+  (lambda (f) (lambda (x) (f ((zero f) x))))
+  (lambda (f) (lambda (x) (f ((lambda (x) x) x))))
+  (lambda (f) (lambda (x) (f x)))
+
+  ;; we can infer that
+  (define one (lambda (f) (lambda (x) (f x))))
+
+  (define two (lambda (f) (lambda (x) (f (f x)))))
+
+  (define (add-n a b)
+    (lambda (f) (lambda (x) ((a f) ((b f) x)))))
+
+  ;; test
+  (add-n one two)
+  (lambda (f) (lambda (x) ((lambda (x) (f x))
+                 (f (f x))
+                 )))
+  (lambda (f) (lambda (x) (f (f (f x)))))
+#+end_src
+
+** 2.1.4
+*** 2.7
+#+begin_src scheme
+  (define (make-interval a b) (cons a b))
+
+  (define (lower-bound x) (car x))
+
+  (define (upper-bound x) (cdr x))
+#+end_src
+
+*** 2.8
+区间段相减，最小值取被减数最小值，减数最大值。最大值取被减数最大值，减数最小值。
+#+begin_src scheme
+  (define (add-interval x y)
+    (make-interval (+ (lower-bound x) (lower-bound y))
+                   (+ (upper-bound x) (upper-bound y))))
+
+  (define (sub-interval x y)
+    (make-interval (- (lower-bound x) (upper-bound y))
+                   (- (upper-bound x) (lower-bound y))))
+#+end_src
+
+*** 2.9
+#+begin_src scheme
+  (define (width x)
+    (/  (- (upper-bound x)
+           (lower-bound x))
+        2))
+#+end_src
+对于减法操作的width,是两个操作数width之和
+#+begin_src scheme :tangle no
+  (- (upper-bound a) (lower-bound a))
+  (- (- (upper-bound x) (lower-bound y))
+     (- (lower-bound x) (upper-bound y)))
+  (+ (- (upper-bound x) (lower-bound x))
+     (- (upper-bound y) (lower-bound y)))
+  (+ (width x)
+     (width y))
+#+end_src
+对于乘法操作,两个操作数的width都是1,但是他们乘积的width并不相同:
+#+begin_example
+  (* (1 2) (2 3)) = (2 6) -> width = 2
+  (* (2 3) (7 8)) = (14 24) -> width = 5
+#+end_example
+
+*** 2.10
+修改程序,当除数跨度包含0时报错
+#+begin_src scheme
+  (define (mul-interval x y)
+    (let ((p1 (* (lower-bound x) (lower-bound y)))
+          (p2 (* (lower-bound x) (upper-bound y)))
+          (p3 (* (upper-bound x) (lower-bound y)))
+          (p4 (* (upper-bound x) (upper-bound y))))
+      (make-interval (min p1 p2 p3 p4)
+                     (max p1 p2 p3 p4))))
+
+  (define (div-interval x y)
+    (if (span-zero y)
+        (error 'div-interval "dividend spans zero")
+        (mul-interval
+         x
+         (make-interval (/ 1.0 (upper-bound y))
+                        (/ 1.0 (lower-bound y))))))
+
+  (define (span-zero x)
+    (cond ((or (= (lower-bound x) 0)
+               (= (upper-bound x) 0)) #t)
+          ((and (< (lower-bound x) 0)
+                (> (upper-bound x) 0)) #t)
+          (else #f)))
+#+end_src
+
+*** 2.11
+可以优化乘法运算,每个操作数只有三种状态,区间大于0,小于0,包含0.两个操作数共有9种组合
+#+begin_src scheme
+  (define (mul-interval x y)
+    (let ((ux (upper-bound x))
+          (lx (lower-bound x))
+          (uy (upper-bound y))
+          (ly (lower-bound y)))
+      (define (mul-1 x y)
+        (make-interval (* ux uy)
+                       (* lx ly)))
+      (define (mul-2 x y)
+        (make-interval (* lx uy)
+                       (* ux ly)))
+      (define (mul-3 x y)
+        (make-interval (* lx uy)
+                       (* lx ly)))
+      (define (mul-4 x y)
+        (mul-2 y x))
+      (define (mul-5 x y)
+        (make-interval (* lx ly)
+                       (* ux uy)))
+      (define (mul-6 x y)
+        (make-interval (* ux ly)
+                       (* ux uy)))
+      (define (mul-7 x y)
+        (mul-3 y x))
+      (define (mul-8 x y)
+        (mul-6 y x))
+      (define (mul-9 x y)
+        (let ((p1 (* lx ly))
+              (p2 (* lx uy))
+              (p3 (* ux ly))
+              (p4 (* ux uy)))
+          (make-interval (min p1 p2 p3 p4)
+                         (max p1 p2 p3 p4))))
+      (cond ((< ux 0)
+             (cond ((< uy 0)
+                    (mul-1 x y))
+                   ((> ly 0)
+                    (mul-2 x y))
+                   (else
+                    (mul-3 x y))))
+            ((> lx 0)
+             (cond ((< uy 0)
+                    (mul-4 x y))
+                   ((> ly 0)
+                    (mul-5 x y))
+                   (else
+                    (mul-6 x y))))
+            (else
+             (cond ((< uy 0)
+                    (mul-7 x y))
+                   ((> ly 0)
+                    (mul-8 x y))
+                   (else
+                    (mul-9 x y)))))))
+#+end_src
+
+*** 2.12
+#+begin_src scheme
+  (define (make-center-width c w)
+    (make-interval (- c w) (+ c w)))
+
+  (define (center i)
+    (/ (+ (lower-bound i) (upper-bound i)) 2))
+
+  (define (width i)
+    (/ (- (upper-bound i) (lower-bound i)) 2))
+
+  (define (make-center-percent c p)
+    (let ((width (* c p)))
+      (make-interval (- c width) (+ c width))))
+
+  (define (percent i)
+    (/ (width i) (center i)))
+#+end_src
+
+*** 2.13
+#+begin_src scheme
+  (define A (make-center-percent 100 0.001))
+  (define B (make-center-percent 25 0.002))
+  (define C (mul-interval A B))
+  (percent C) ; 0.0029999940000119997
+#+end_src
+由上面的计算可推测,乘积的误差p是因素的误差p1,p2之和.即p=p1+p2.公式推导如下:
+#+begin_example
+A = (c1-w1, c1+w1), p1=w1/c1
+B = (c2-w2, c2+w2), p2=w2/c2
+C = A*B, 假设所有端点都是正数
+C = ((c1-w1)*(c2-w2), (c1+w1)(c2+w2))
+设C的宽度为w,中点c,误差p,有
+2w = c1c2 + c1w2 + w1c2 + w1w2 - (c1c2 -c1w2 -w1c2 + w1w2)
+2w = 2(c1w2 + w1c2)
+w/c1c2 = w2/c2 + w1/c1 = p1 + p2
+2c = c1c2 + c1w2 + w1c2 + w1w2 + (c1c2 -c1w2 -w1c2 + w1w2)
+2c = 2(c1c2 + w1w2)
+c/c1c2 = 1 + w1w2/c1c2 = 1 + p1p2
+所以:
+p = w/c = (w/c1c2)/(c/c1c2) = (p1 + p2)/(1 + p1p2)
+当p很小时,p1*p2相对于1可以忽略不计,得到:
+p = p1 + p2
+#+end_example
+
+*** 2.14
+#+begin_src scheme
+  (define (par1 r1 r2)
+    (div-interval (mul-interval r1 r2)
+                  (add-interval r1 r2)))
+
+  (define (par2 r1 r2)
+    (let ((one (make-interval 1 1)))
+      (div-interval
+       one (add-interval (div-interval one r1)
+                         (div-interval one r2)))))
+
+  (define A (make-center-percent 25 0.1))
+  (define B (make-center-percent 50 0.2))
+  (define R1 (par1 A B))
+  (define R2 (par2 A B))
+  (printf "R1:~a, ~a\n R2:~a, ~a\n" (center R1) (width R1) (center R2) (width R2))
+  ;; 相差很大
+  #|
+   R1:18.342857142857145, 8.057142857142857
+   R2:16.628571428571426, 2.2285714285714295
+  |#
+  ;; 当percent很小时,相差很小
+  (define E (make-center-percent 25 0.01))
+  (define F (make-center-percent 50 0.02))
+  (define R1 (par1 E F))
+  (define R2 (par2 E F))
+  (printf "R1:~a, ~a\n R2:~a, ~a\n" (center R1) (width R1) (center R2) (width R2))
+  #|
+   R1:16.682967490969713, 0.7780494581828279
+   R2:16.66629619338705, 0.22222839677688455
+  |#
+
+  (define C1 (div-interval A A))
+  (define C2 (div-interval B A))
+  (printf "C1:~a, ~a\n C2:~a, ~a\n" (center C1) (width C1) (center C2) (width C2))
+  #|
+   C1:1.0202020202020203, 0.2020202020202021
+   C2:2.0606060606060606, 0.6060606060606062
+  |#
+  (define C1 (div-interval E E))
+  (define C2 (div-interval F E))
+  (printf "C1:~a, ~a\n C2:~a, ~a\n" (center C1) (width C1) (center C2) (width C2))
+  #|
+   C1:1.0002000200020003, 0.020002000200020076
+   C2:2.0006000600060005, 0.06000600060006023
+  |#
+#+end_src
+
+*** 2.15
+从上面的测试结果看,par2计算的结果更准确,误差更小,说明Eav的判断是正确的.
+对于存在偏差的值,每次计算都会产生新的偏差.比如A(4 8),那么A可以取4~8之间的任意值.重复出现的A,虽然符号一样,但代表的却是不一样的值.
+
+*** 2.16
+误差的原因如2.15所示,对于有误差的值,符号一样,但代表的值不一样.
+要想消除误差,那么在计算时,所有的中间变量都只能计算一次.
+相关资料可以查看wiki链接: [[https://en.wikipedia.org/wiki/Field_%28mathematics%29][Field]] [[https://en.wikipedia.org/wiki/Interval_arithmetic#Dependency_problem][Dependency problem]]
+
+** 2.2.1
+*** 2.17
+#+begin_src scheme
+  (define (last-pair xs)
+    (define (next a d)
+      (if (null? d)
+          (list a)
+          (next (car d) (cdr d))))
+    (next (car xs) (cdr xs)))
+
+  (last-pair (list 23 72 149 34))
+  (last-pair (list 1))
+#+end_src
+*** 2.18
+#+begin_src scheme
+  (define (reverse-my xs)
+    (if (null? xs)
+        '()
+        (append (reverse-my (cdr xs))
+                (list (car xs)))))
+
+  (reverse-my (list 1 4 9 16 25))
+#+end_src
+*** 2.19
+使用list解决count-change问题
+#+begin_src scheme
+  (define (cc amount coin-values)
+    (cond ((= amount 0) 1)
+          ((or (< amount 0) (no-more? coin-values)) 0)
+          (else
+           (+ (cc amount
+                  (except-first-denomination
+                   coin-values))
+              (cc (- amount
+                     (first-denomination
+                      coin-values))
+                  coin-values)))))
+
+  (define (first-denomination coin-values)
+    (car coin-values))
+
+  (define (except-first-denomination coin-values)
+    (cdr coin-values))
+
+  (define (no-more? coin-values)
+    (null? coin-values))
+
+  (define us-coins (list 50 25 10 5 1))
+  (define uk-coins (list 100 50 20 10 5 2 1 0.5))
+  (cc 100 us-coins);292
+  (cc 100 uk-coins);104561
+#+end_src
+*** 2.20
+如何定义可变参数的过程.注意只有一个可变参数的两种写法:
+~(define (g . w) <body>)~ 与 ~(define g (lambda w <body>))~
+#+begin_src scheme
+  (define (same-parity x . xs)
+    (let ((r (remainder x 2)))
+      (cons x
+            (filter (lambda (y) (= (remainder y 2) r))
+                    xs))))
+
+  (same-parity 1 2 3 4 5 6 7)
+  (same-parity 2 3 4 5 6 7)
+#+end_src
+*** 2.21
+#+begin_src scheme
+  (define (square-list items)
+    (if (null? items)
+        '()
+        (cons (square (car items))
+              (square-list (cdr items)))))
+
+  (define (square-list items)
+    (map (lambda (x) (square x))
+         items))
+
+  (square-list (list 1 2 3 4))
+#+end_src
+*** 2.22
+a. answer是cons的第二个参数,所以最先加入到answer的列表元素会拼接到最后.
+b. answer是列表,不能作为cons的第一个参数.解决方案是用list的append操作.
+*** 2.23
+#+begin_src scheme
+  (define (for-each f xs)
+    (if (not (null? xs))
+        (begin
+          (f (car xs))
+          (for-each f (cdr xs)))
+        #t))
+
+  (for-each (lambda (x)
+              (newline)
+              (display x))
+            (list 57 321 88))
+#+end_src
+
+** 2.2.2 Hierarchical Structures
+*** 2.24
+#+begin_src scheme
+  (list 1
+        (list 2
+              (list 3 4))) ; '(1 (2 (3 4))
+#+end_src
+*** 2.25
+#+begin_src scheme
+  (define A '(1 3 (5 7) 9))
+  (define B '((7)))
+  (define C '(1 (2 (3 (4 (5 (6 7)))))))
+
+  (car (cdaddr A))
+  (caar B)
+  (cadadr (cadadr (cadadr C)))
+#+end_src
+*** 2.26
+#+begin_src scheme
+  (define x (list 1 2 3))
+  (define y (list 4 5 6))
+
+  (append x y) ; '(1 2 3 4 5 6)
+  (cons x y) ; '((1 2 3) 4 5 6)
+  (list x y) ; '((1 2 3) (4 5 6))
+#+end_src
+*** 2.27
+#+begin_src scheme
+  (define (deep-reverse xs)
+    (cond ((null? xs) '())
+          ((not (pair? xs)) xs)
+          (else
+           (append (deep-reverse (cdr xs))
+                   (list (deep-reverse (car xs)))))))
+
+  (define x '((1 2) (3 4)))
+  (reverse-my x)
+  (deep-reverse x)
+  (deep-reverse '(1 2 (3 4 (5 6) ((7 8)))))
+#+end_src
+*** 2.28
+#+begin_src scheme
+  (define (fringe xs)
+    (cond ((null? xs) '())
+          ((not (pair? xs)) (list xs))
+          (else
+           (append (fringe (car xs))
+                   (fringe (cdr xs))))))
+
+  (define x '((1 2) (3 4)))
+  (fringe x)
+  (fringe (list x x))
+#+end_src
+*** 2.29
+#+begin_src scheme
+  (define (make-mobile left right)
+    (list left right))
+
+  (define (make-branch length structure)
+    (list length structure))
+
+  (define (left-branch mobile)
+    (car mobile))
+
+  (define (right-branch mobile)
+    (cadr mobile))
+
+  (define (branch-length branch)
+    (car branch))
+
+  (define (branch-structure branch)
+    (cadr branch))
+
+  (define (branch-leaf? branch)
+    (number? (branch-structure branch)))
+#+end_src
+可以定义branch-leaf?用于判定branch-structure是否为weight.
+#+begin_src scheme
+  (define (total-weight mobile)
+    (define (weight-branch branch)
+      (let ((structure (branch-structure branch)))
+        (if (branch-leaf? branch)
+            structure
+            (+ (weight-branch (left-branch structure))
+               (weight-branch (right-branch structure))))))
+    (+ (weight-branch (left-branch mobile))
+       (weight-branch (right-branch mobile))))
+
+  (define m (make-mobile (make-branch 3 3) (make-branch 1 9)))
+  (total-weight m)
+  (define n (make-mobile (make-branch 2 m) (make-branch 2 m)))
+  (total-weight n)
+#+end_src
+递归判断mobile是否平衡
+#+begin_src scheme
+  (define (torque branch)
+      (let ((structure (branch-structure branch))
+            (length (branch-length branch)))
+        (if (branch-leaf? branch)
+            (* length structure)
+            (* length (total-weight structure)))))
+
+  (define (mobile-balance? mobile)
+    (let ((left (left-branch mobile))
+          (right (right-branch mobile)))
+      (and (= (torque left) (torque right))
+           (or (branch-leaf? left) (mobile-balance? (branch-structure left)))
+           (or (branch-leaf? right) (mobile-balance? (branch-structure right))))))
+
+  (define m (make-mobile (make-branch 2 3) (make-branch 3 2)))
+  (define n (make-mobile (make-branch 3 m) (make-branch 3 m)))
+  (define k (make-mobile (make-branch 4 n) (make-branch 4 n)))
+  (mobile-balance? k) ;#t
+#+end_src
+当mobile的具体表示改变时,只需要更改selector即可
+#+begin_src scheme
+  (define (make-mobile left right) (cons left right))
+
+  (define (make-branch length structure)
+    (cons length structure))
+
+  (define (left-branch mobile)
+    (car mobile))
+
+  (define (right-branch mobile)
+    (cdr mobile))
+
+  (define (branch-length branch)
+    (car branch))
+
+  (define (branch-structure branch)
+    (cdr branch))
+#+end_src
+*** 2.30
+#+begin_src scheme
+  (define (square-tree xs)
+    (cond ((null? xs) '())
+          ((not (pair? xs)) (square xs))
+          (else
+           (cons (square-tree (car xs))
+                 (square-tree (cdr xs))))))
+
+  (define A '(1 (2 (3 4) 5)
+                (6 7)))
+  (square-tree A)
+
+  (define (square-tree xs)
+    (map (lambda (sub-tree)
+           (if (pair? sub-tree)
+               (square-tree sub-tree)
+               (square sub-tree)))
+         xs))
+#+end_src
+*** 2.31
+#+begin_src scheme
+  (define (tree-map f tree)
+    (map (lambda (sub-tree)
+           (if (pair? sub-tree)
+               (tree-map f sub-tree)
+               (f sub-tree)))
+         tree))
+
+  (define (square-tree tree) (tree-map square tree))
+  (square-tree A)
+#+end_src
+*** 2.32
+集合的所有子集合,就是包含一元素的子集合+不包含该元素的子集合.注意为空时,子集合有唯一的元素 ~'()~
+#+begin_src scheme
+  (define (subsets s)
+    (if (null? s)
+        (list '())
+        (let ((rest (subsets (cdr s))))
+          (append rest
+                  (map (lambda (subset) (cons (car s) subset))
+                            rest)))))
+
+  (subsets '(1 2 3))
+#+end_src
+
+** 2.2.3 Sequence as Conventional Interfaces
+*** 2.33
+#+begin_src scheme
+  (define (accumulate op initial sequence)
+    (if (null? sequence)
+        initial
+        (op (car sequence)
+            (accumulate op initial (cdr sequence)))))
+
+  (define (map-my p sequence)
+    (accumulate (lambda (x y) (cons (p x) y))
+                '()
+                sequence))
+
+  (map (lambda (x) (+ x 1)) '(1 2 3))
+
+  (define (append-my seq1 seq2)
+    (accumulate cons seq2 seq1))
+
+  (append '(1 2 3) '(4 5 6))
+
+  (define (length-my sequence)
+    (accumulate (lambda (x y) (+ y 1))
+                0
+                sequence))
+
+  (length '(1 2 3))
+#+end_src
+
+*** 2.34
+利用Horner's rule计算多项式在x处的值, coefficient-sequence为(a0,a1,...,an).
+根据accumulate的定义,我们可以知道accumulate类似于foldr,所以会最先计算an
+#+begin_src scheme
+  (define (horner-eval x coefficient-sequence)
+    (accumulate (lambda (this-coeff higher-terms)
+                  (+ (* higher-terms x)
+                     this-coeff))
+                0
+                coefficient-sequence))
+
+  (horner-eval 2 '(1 3 0 5 0 1)) ;79
+#+end_src
+*** 2.35
+#+begin_src scheme
+  (define (count-leaves x)
+    (cond ((null? x) 0)
+          ((not (pair? x)) 1)
+          (else (+ (count-leaves (car x))
+                   (count-leaves (cdr x))))))
+
+  (define A '((1 2 (3 4)) (5 (6 (7)))))
+
+  (count-leaves A)
+
+  (define (count-leaves t)
+    (accumulate + 0 (map (lambda (sub-tree)
+                           (if (pair? sub-tree)
+                               (count-leaves sub-tree)
+                               1))
+                         t)))
+#+end_src
+*** 2.36
+#+begin_src scheme
+  (define (accumulate-n op init seqs)
+    (if (null? (car seqs))
+        '()
+        (cons (accumulate op init (map car seqs))
+              (accumulate-n op init (map cdr seqs)))))
+
+  (define A '((1 2 3) (4 5 6) (7 8 9) (10 11 12)))
+  (accumulate-n + 0 A); '(22 26 30)
+
+  (map car A); '(1 4 7 10)
+  (map cdr A); '((2 3) (5 6) (8 9) (11 12))
+#+end_src
+*** 2.37
+矩阵的运算，序列中的序列代表行。
+#+begin_src scheme
+  (define (dot-product v w)
+    (accumulate + 0 (map * v w)))
+
+  (dot-product '(1 2 3) '(4 5 6)) ;32
+
+  (define (matrix-*-vector m v)
+    (map (lambda (r) (dot-product r v)) m))
+
+  (define M '((1 2 3 4) (4 5 6 6) (6 7 8 9)))
+  (define R '(1 2 3 4))
+  (matrix-*-vector M R) ; '(30 56 80)
+
+  (define (transpose mat)
+    (accumulate-n cons '() mat))
+
+  (transpose M) ; '((1 4 6) (2 5 7) (3 6 8) (4 6 9))
+
+  (define (matrix-*-matrix m n)
+    (let ((cols (transpose n)))
+      (map (lambda (v) (matrix-*-vector cols v))
+           m)))
+
+  (define N '((1 2) (2 2) (3 1) (4 5)))
+
+  (transpose N) ; '((1 2 3 4) (2 2 1 5))
+  (matrix-*-matrix M N) ; '((30 29) (56 54) (80 79))
+#+end_src
+*** 2.38
+#+begin_src scheme
+  (define fold-right accumulate)
+
+  (define (fold-left op initial sequence)
+    (define (iter result rest)
+      (if (null? rest)
+          result
+          (iter (op result (car rest))
+                (cdr rest))))
+    (iter initial sequence))
+
+  (accumulate / 1 '(1 2 3)) ; => 3/1 => 2/(3/1) => 1/(2/(3/1)) => 3/2
+  (fold-left / 1 '(1 2 3)) ; => 1/1 => 1/2 => (1/2)/3 , 1/6
+  (accumulate list '() '(1 2 3)) ; '(1 (2 (3 ())))
+  (fold-left list '() '(1 2 3)) ; '(((() 1) 2) 3)
+
+  ;; 如果操作满足交换率，则foldr和foldl一样
+  ;; 即 a `op` b = b `op` a
+#+end_src
+*** 2.39
+#+begin_src scheme
+  (define (reverse sequence)
+    (fold-right (lambda (x y)
+                  (append y (list x)))
+                '()
+                sequence))
+
+  (reverse '(1 2 3 4))
+
+  (define (reverse sequence)
+    (fold-left (lambda (x y)
+                 (cons y x))
+               '()
+               sequence))
+#+end_src
+*** 2.40
+#+begin_src scheme
+  (define (enumerate-interval a b)
+    (if (> a b)
+        '()
+        (cons a
+              (enumerate-interval (+ a 1) b))))
+
+  (enumerate-interval 2 9)
+
+  (define (flatmap pro seq)
+    (accumulate append '() (map pro seq)))
+
+  (define (unique-pairs n)
+    (flatmap (lambda (i)
+               (map (lambda (j)
+                      (list i j))
+                    (enumerate-interval 1 (- i 1))))
+             (enumerate-interval 1 n)))
+
+  (unique-pairs 3)
+
+  ;; simplify
+  (define (prime-sum? pair)
+    (prime? (+ (car pair) (cadr pair))))
+
+  (define (make-pair-sum pair)
+    (list (car pair) (cadr pair) (+ (car pair) (cadr pair))))
+
+
+  (define (prime-sum-pairs n)
+    (map make-pair-sum
+         (filter prime-sum? (unique-pairs n))))
+
+  (prime-sum-pairs 5)
+#+end_src
+*** 2.41
+#+begin_src scheme
+  ;; 1<=k<j<i<=n
+  (define (triple-sum-to-s n s)
+    (filter (lambda (triple)
+              (= (accumulate + 0 triple)
+                 s))
+            (unique-triple n)))
+
+  (define (unique-triple n)
+    (flatmap (lambda (i)
+           (flatmap (lambda (j)
+                      (map (lambda (k)
+                             (list i j k))
+                           (enumerate-interval 1 (- j 1))))
+                    (enumerate-interval 1 (- i 1))))
+         (enumerate-interval 1 n)))
+
+  (unique-triple 4)
+  (triple-sum-to-s 10 10)
+#+end_src
+*** 2.42
+#+begin_src scheme
+  (define (queens board-size)
+    (define (queen-cols k)
+      (if (= k 0)
+          (list empty-board)
+          (filter
+           (lambda (positions) (safe? k positions))
+           (flatmap (lambda (rest-of-queens)
+                      (map (lambda (new-row)
+                             (adjoin-position
+                              new-row k rest-of-queens))
+                           (enumerate-interval 1 board-size)))
+                    (queen-cols (- k 1))))))
+    (queen-cols board-size))
+
+  (define empty-board '())
+
+  (define (safe? k positions)
+    (and (safe-row? k positions)
+         (safe-diag? k positions)))
+
+  (define (safe-row? k positions)
+    (let ((r (reverse positions)))
+      (null? (filter (lambda (p) (= p (car r)))
+                     (cdr r)))))
+
+  (define (safe-diag? k positions)
+    (let* ((pairs (vector-to-pair positions))
+           (rpairs (reverse pairs))
+           (kpair (car rpairs))
+           (left-pairs (cdr rpairs)))
+      (null? (filter (lambda (p) (diag-pair? p kpair))
+                     left-pairs))))
+
+  (define (diag-pair? p1 p2)
+    (= (abs (- (car p1)
+               (car p2)))
+       (abs (- (cadr p1)
+               (cadr p2)))))
+
+  (define (vector-to-pair v)
+    (map (lambda (i)
+           (list i (list-ref v (- i 1))))
+         (enumerate-interval 1 (length v))))
+
+  (define (adjoin-position new-row k rest-of-queens)
+    (append rest-of-queens (list new-row)))
+
+  (queens 7) ;92种结果
+#+end_src
+*** 2.43
+queen-cols是个非常耗时的操作，Louis将其放入内循环，本来只需要计算一次的，现在需要计算N次了。
+Louis将queen-cols由线性递归转为了树形递归，原本时间为T，现在需要时间T*(N-1)!.
+#+begin_src scheme
+  (define (queens board-size)
+    (define (queen-cols k)
+      (if (= k 0)
+          (list empty-board)
+          (filter
+           (lambda (positions) (safe? k positions))
+           (flatmap
+            (lambda (new-row)
+              (map (lambda (rest-of-queens)
+                     (adjoin-position new-row k rest-of-queens))
+                   (queen-cols (- k 1))))
+            (enumerate-interval 1 board-size)))))
+    (queen-cols board-size))
+
+  (define (cost n)
+    (map (lambda (i)
+           (time (queens i) (void)))
+         (enumerate-interval 1 n)))
+
+  (cost 7)
+#+end_src
+|  N | cost time | Louis's cost time |
+|  6 |           |                14 |
+|  7 |         2 |               268 |
+|  8 |        25 |              6257 |
+|  9 |       385 |            162225 |
+| 10 |      6758 |                   |
+| 11 |    165953 |                   |
+从上表可以看出，Louis的方法比原来的方法要慢两个步骤。
+
+** 2.2.4
+[[2.2.4 Example: Picture][refer to example 2.2.4]]
+
+** 2.3.1
+*** 2.53
+#+begin_src scheme
+  (list 'a 'b 'c) ; '(a b c)
+  (list (list 'george)) ; '((george))
+  (cdr '((x1 x2) (y1 y2))) ; '((y1 y2))
+  (cadr '((x1 x2) (y1 y2))) ; '(y1 y2)
+  (pair? (car '(a short list))) ; #f
+  (memq 'red '((red shoes) (blue socks))) ;#f
+  (memq 'red '(red shoes blue socks)) ; '(red shoes blue socks)
+#+end_src
+*** 2.54
+#+begin_src scheme
+  (define (equal_my? x y)
+    (cond ((and (symbol? x) (symbol? y))
+           (eq? x y))
+          ((and (number? x) (number? y))
+           (= x y))
+          ((and (pair? x) (pair? y))
+           (and (equal_my? (car x) (car y))
+                (equal_my? (cdr x) (cdr y))))
+          ((and (null? x) (null? y))
+           #t)
+          (else #f)))
+
+  (require racket/trace)
+  (trace equal_my?)
+  (equal_my? '(a (a b)) '(a (a b)))
+#+end_src
+*** 2.55
+~''abc~ expand as ~(quote (quote abc))~ , so ~(car ''abc) = 'quote~
+
+** 2.3.2
+*** 2.56
+#+begin_src scheme
+  (define make-exponentiation
+    (lambda (base exp)
+      (cond ((=number? exp 0) 1)
+            ((=number? exp 1) base)
+            (else (list '** base exp)))))
+  (define base
+    (lambda (e) (cadr e)))
+  (define exponent
+    (lambda (e) (caddr e)))
+  (define exponentiation?
+    (lambda (e) (and (pair? e) (eq? (car e) '**))))
+
+  (define (deriv2 exp var)
+      (cond ((number? exp) 0)
+            ((variable? exp)
+             (if (same-variable? exp var) 1 0))
+            ((sum? exp)
+             (make-sum (deriv2 (addend exp) var)
+                       (deriv2 (augend exp) var)))
+            ((product? exp)
+             (make-sum
+              (make-product (multiplier exp)
+                            (deriv2 (multiplicand exp) var))
+              (make-product (deriv2 (multiplier exp) var)
+                            (multiplicand exp))))
+            ((exponentiation? exp)
+             (let ((n (exponent exp))
+                   (b (base exp)))
+               (make-product n
+                             (make-product
+                              (make-exponentiation b (- n 1))
+                              (deriv2 b var)))))
+            (else
+             (error 'deriv2 "unknown expression type: ~a" exp))))
+#+end_src
+*** 2.57
+#+begin_src scheme
+  (define exp-rest
+    (lambda (op)
+      (lambda (e)
+        (let ((rest (cddr e)))
+          (if (singleton? rest)
+              (car rest)
+              (cons op rest))))))
+
+  (define augend
+    (exp-rest '+))
+  (define multiplicand
+    (exp-rest '*))
+
+  (define singleton?
+    (lambda (e) (and (pair? e) (= (length e) 1))))
+
+  (define make-sum
+    (lambda (a1 a2)
+      (cond ((=number? a1 0) a2)
+            ((=number? a2 0) a1)
+            ((and (number? a1) (number? a2))
+             (+ a1 a2))
+            (else (combine-two sum? '+ a1 a2)))))
+
+  (define make-product
+    (lambda (m1 m2)
+      (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+            ((=number? m1 1) m2)
+            ((=number? m2 1) m1)
+            ((and (number? m1) (number? m2)) (* m1 m2))
+            (else (combine-two product? '* m1 m2)))))
+
+  (define combine-two
+    (lambda (pred? op a1 a2)
+      (cond ((and (pred? a1) (pred? a2))
+             (cons op
+                   (append (cdr a1) (cdr a2))))
+            ((pred? a1)
+             (cons op
+                   (append (cdr a1) (list a2))))
+            ((pred? a2)
+             (cons op
+                   (cons a1 (cdr a2))))
+            (else (list op a1 a2)))))
+#+end_src
+*** 2.58
+a.
+#+begin_src scheme
+  (define sum?
+    (lambda (e) (and (pair? e) (eq? (cadr e) '+))))
+  (define addend
+    (lambda (e) (car e)))
+  (define augend
+    (lambda (e) (caddr e)))
+  (define make-sum
+    (lambda (a1 a2)
+      (cond ((=number? a1 0) a2)
+            ((=number? a2 0) a1)
+            ((and (number? a1) (number? a2))
+             (+ a1 a2))
+            (else (list a1 '+ a2)))))
+
+  (define product?
+    (lambda (e) (and (pair? e) (eq? (cadr e) '*))))
+  (define multiplier
+    (lambda (e) (car e)))
+  (define multiplicand
+    (lambda (e) (caddr e)))
+  (define make-product
+    (lambda (m1 m2)
+      (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+            ((=number? m1 1) m2)
+            ((=number? m2 1) m1)
+            ((and (number? m1) (number? m2)) (* m1 m2))
+            (else (list m1 '* m2)))))
+#+end_src
+b. find ~+~, sublist before it is addend, sublist after it is augend.
+#+begin_src scheme
+  (define sum?
+    (lambda (e) (and (pair? e) (memq '+ e))))
+  (define addend
+    (lambda (e)
+      (let ((ad (memq_c '+ e)))
+        (if (singleton? ad)
+            (car ad)
+            ad))))
+  (define augend
+    (lambda (e)
+      (let* ((m (memq '+ e))
+             (au (cdr m)))
+        (if (singleton? au)
+            (car au)
+            au))))
+  ;; (memq_c 2 '(1 2 3)) =  '(1)
+  ;; (memq_c 4 '(1 2 3)) = #f
+  ;; (memq_c 1 '(1 2 3)) = '()
+  (define memq_c
+    (lambda (e xs)
+      (define (iter result xs)
+        (cond ((null? xs) #f)
+              ((eq? (car xs) e)
+               result)
+              (else
+               (iter (cons (car xs) result)
+                     (cdr xs)))))
+     (reverse (iter '() xs))))
+
+  (define product?
+    (lambda (e)
+      (and (pair? e)
+           (not (memq '+ e))
+           (memq '* e))))
+  (define multiplier
+    (lambda (e)
+      (let ((m (memq_c '* e)))
+        (if (singleton? m)
+            (car m)
+            m))))
+  (define multiplicand
+    (lambda (e)
+      (let ((m (cdr (memq '* e))))
+        (if (singleton? m)
+            (car m)
+            m))))
+#+end_src
+
+** 2.3.3 Example: Representing Sets
+we can employ the method of data abstraction.
+we define *set* by specifying the operations that are to be used on sets.
+#+begin_src scheme
+  (define union-set
+    (lambda (s1 s2) '()))
+  (define intersection-set
+    (lambda (s1 s2) '()))
+  (define element-of-set?
+    (lambda (e s) '()))
+  (define adjoin-set
+    (lambda (e s) '()))
+#+end_src
+*** 2.59 Sets as unordered lists
+#+begin_src scheme
+  (define (element-of-set? x set)
+    (cond ((null? set) false)
+          ((equal? x (car set)) true)
+          (else (element-of-set? x (cdr set)))))
+  (define (adjoin-set x set)
+    (if (element-of-set? x set)
+        set
+        (cons x set)))
+  (define (intersection-set set1 set2)
+    (cond ((or (null? set1) (null? set2))
+           '())
+          ((element-of-set? (car set1) set2)
+           (cons (car set1) (intersection-set (cdr set1) set2)))
+          (else (intersection-set (cdr set1) set2))))
+  ;; 2.59
+  (define (union-set set1 set2)
+    (cond ((null? set1) set2)
+          ((null? set2) set1)
+          ((element-of-set? (car set1) set2)
+           (union-set (cdr set1) set2))
+          (else (cons (car set1)
+                      (intersection-set (cdr set1) set2)))))
+#+end_src
+*** 2.60
+~element-of-set?~ is the same. duplicate set has more elements than non-duplicate one, we use duplicate set when there are more operations of adjoin-set or union-set.
+| operation        | non-duplicate | duplicate |
+| element-of-set?  | O(n)          | O(n)      |
+| adjoin-set       | O(n)          | O(1)      |
+| intersection-set | O(n^2)        | O(n^2)    |
+| union-set        | O(n^2)        | O(n)      |
+#+begin_src scheme
+  (define (adjoin-set x set)
+    (cons x set))
+  (define (intersection-set set1 set2)
+    (cond ((or (null? set1) (null? set2))
+           '())
+          ((element-of-set? (car set1) set2)
+           (cons (car set1) (intersection-set (cdr set1) set2)))
+          (else (intersection-set (cdr set1) set2))))
+  (define (union-set set1 set2)
+    (append set1 set2))
+#+end_src
+*** 2.61 Sets as ordered lists
+#+begin_src scheme
+  (define (element-of-set? x set)
+    (cond ((null? set) #f)
+          ((= x (car set) #t))
+          ((< x (car set) #f))
+          (else (element-of-set? x (cdr set)))))
+  (define (intersection-set set1 set2)
+    (if (or (null? set1) (null? set2))
+        '()
+        (let ((x1 (car set1))
+              (x2 (car set2)))
+          (cond ((= x1 x2)
+                 (cons x1 (intersection-set (cdr set1)
+                                            (cdr set2))))
+                ((< x1 x2)
+                 (intersection-set (cdr set1) set2))
+                ((< x2 x1)
+                 (intersection-set set1 (cdr set2)))))))
+#+end_src
+;; 2.61
+#+begin_src scheme
+  (define (adjoin-set x set)
+    (cond ((null? set) (list x))
+          ((= x (car set)) set)
+          ((< x (car set)) (cons x set))
+          (else (cons (car set)
+                      (adjoin-set x (cdr set))))))
+#+end_src
+*** 2.62
+#+begin_src scheme
+  (define (union-set set1 set2)
+    (cond ((null? set1) set2)
+          ((null? set2) set1)
+          (else
+           (let ((x1 (car set1))
+                 (x2 (car set2)))
+             (cond ((= x1 x2) (cons x1
+                                    (union-set (cdr set1) (cdr set2))))
+                   ((< x1 x2) (cons x1
+                                    (union-set (cdr set1) set2)))
+                   (else (cons x2
+                               (union-set set1 (cdr set2)))))))))
+
+  (union-set '() '(1 2))
+  (union-set '(1 2) '())
+  (union-set '(1 2) '(3 4))
+  (union-set '(1 2 3 5 7 9) '(1 2 3 4 5 6 7 8))
+#+end_src
+*** 2.63 Sets as binary trees
+define abstract operations
+#+begin_src scheme
+  (define (entry tree) (car tree))
+  (define (left-branch tree) (cadr tree))
+  (define (right-branch tree) (caddr tree))
+  (define (make-tree entry left right)
+    (list entry left right))
+#+end_src
+use abstract operations
+#+begin_src scheme
+  (define (element-of-set-tree? x set)
+    (cond ((null? set) #f)
+          ((= x (entry set)) #t)
+          ((< x (entry set))
+           (element-of-set-tree? x (left-branch set)))
+          ((> x (entry set))
+           (element-of-set-tree? x (right-branch set)))))
+
+  (define (adjoin-set-tree x set)
+    (cond ((null? set) (make-tree x '() '()))
+          ((= x (entry set)) set)
+          ((< x (entry set))
+           (make-tree (entry set)
+                      (adjoin-set-tree x (left-branch set))
+                      (right-branch set)))
+          ((> x (entry set))
+           (make-tree (entry set)
+                      (left-branch set)
+                      (adjoin-set-tree x (right-branch set))))))
+#+end_src
+*2.63*
+a. the two procedures produce the same result for every tree.
+b. the order of growth of the first procedure is O(logN),the second is O(N).
+in terms of the second procedure, each iteration decrease the size by half,but call itself twice. the total order of growth is unchanged.
+#+begin_src scheme
+  (define (tree->list-1 tree)
+    (if (null? tree)
+        '()
+        (append (tree->list-1 (left-branch tree))
+                (cons (entry tree)
+                      (tree->list-1
+                       (right-branch tree))))))
+
+  (define (tree->list-2 tree)
+    (define (copy-to-list tree result-list)
+      (if (null? tree)
+          result-list
+          (copy-to-list (left-branch tree)
+                        (cons (entry tree)
+                              (copy-to-list
+                               (right-branch tree)
+                               result-list)))))
+    (copy-to-list tree '()))
+
+  (define A '(7 (3 (1 () ()) (5 () ()))
+                (9 () (11 () ()))))
+  (tree->list-1 A) ;'(1 3 5 7 9 11)
+  (tree->list-2 A) ;'(1 3 5 7 9 11)
+  (define B '(3 (1 () ())
+                (7 (5 () ())
+                   (9 ()
+                      (11 () ())))))
+  (tree->list-1 B) ;'(1 3 5 7 9 11)
+  (tree->list-2 B) ;'(1 3 5 7 9 11)
+  (define C '(5 (3 (1 () ())
+                   ())
+                (9 (7 () ())
+                   (11 () ()))))
+  (tree->list-1 C) ;'(1 3 5 7 9 11)
+  (tree->list-2 C) ;'(1 3 5 7 9 11)
+#+end_src
+*** 2.64
+a. how partial-tree works:
+first calcuate left-tree size, then get left-tree and remaining elts by recursive function call. in terms of remaining elts, the head of elts is the entry, and the other elts can form right-tree by recursive function call.
+each recursive call we half the size. and each iteration we have two recursive call. so the total order of growth is O(N).
+#+begin_src scheme
+  (define (list->tree elements)
+    (car (partial-tree elements (length elements))))
+  (define (partial-tree elts n)
+    (if (= n 0)
+        (cons '() elts)
+        (let* ((left-size (quotient (- n 1) 2))
+               (left-result (partial-tree elts left-size))
+               (left-tree (car left-result))
+               (non-left-elts (cdr left-result))
+               (right-size (- n (+ left-size 1)))
+               (this-entry (car non-left-elts))
+               (right-result (partial-tree (cdr non-left-elts)
+                                           right-size))
+               (right-tree (car right-result))
+               (remaining-elts (cdr right-result)))
+          (cons (make-tree this-entry
+                           left-tree
+                           right-tree)
+                remaining-elts))))
+  (list->tree '(1 3 5 7 9 11))
+#+end_src
+*** 2.65
+tree->ordered list, list union, ordered list->tree
+#+begin_src scheme
+  (define (union-set-tree tree1 tree2)
+    (let ((ol1 (tree->list-1 tree1))
+          (ol2 (tree->list-1 tree2)))
+      (list->tree (union-set ol1 ol2))))
+  (define (intersection-set-tree tree1 tree2)
+    (let ((ol1 (tree->list-1 tree1))
+          (ol2 (tree->list-1 tree2)))
+      (list->tree (intersection-set ol1 ol2))))
+#+end_src
+test:
+#+begin_src scheme
+  (define tr1 (list->tree '(1 2 3 5 7 9 10)))
+  (define tr2 (list->tree '(1 2 3 4 6 8 10)))
+  (union-set-tree tr1 tr2)
+  (intersection-set-tree tr1 tr2)
+#+end_src
+*** 2.66 Sets and information retrieval
+define abstract selectors and constructors for record.
+our record is entry of tree which is just a number.
+#+begin_src scheme
+  (define (key-rd entry)
+    entry)
+  (define (val-rd entry)
+    entry)
+#+end_src
+define lookup base on tree of records
+#+begin_src scheme
+  (define (lookup-tree given-key set-of-records)
+    (if (null? set-of-records)
+        #f
+        (let ((key (key-rd (entry set-of-records))))
+          (cond ((= given-key key)
+                 (val-rd (entry set-of-records)))
+                ((< given-key key)
+                 (lookup-tree given-key
+                              (left-branch set-of-records)))
+                ((> given-key key)
+                 (lookup-tree given-key
+                              (right-branch set-of-records)))))))
+  (lookup-tree 3 tr1) ;3
+  (lookup-tree 120 tr1) ;#f
+#+end_src
+
+** 2.3.4 Example: Huffman Encoding Trees
+*** 2.67 representing Huffman trees
+#+begin_src scheme
+  (define (make-leaf symbol weight) (list 'leaf symbol weight))
+  (define (leaf? object) (eq? (car object) 'leaf))
+  (define (symbol-leaf x) (cadr x))
+  (define (weight-leaf x) (caddr x))
+
+  ;; representing tree
+  (define make-code-tree
+    (lambda (left right)
+      (list left
+            right
+            (append (symbols-ct left) (symbols-ct right))
+            (+ (weight-ct left) (weight-ct right)))))
+  (define (left-branch-ct tree) (car tree))
+  (define (right-branch-ct tree) (cadr tree))
+  (define (symbols-ct tree)
+    (if (leaf? tree)
+        (list (symbol-leaf tree))
+        (caddr tree)))
+  (define weight-ct
+    (lambda (tree)
+      (if (leaf? tree)
+          (weight-leaf tree)
+          (cadddr tree))))
+#+end_src
+*The decoding procedure*
+#+begin_src scheme
+  (define decode
+    (lambda (bits tree)
+      (define (decode-1 bits current-branch)
+        (if (null? bits)
+            '()
+            (let ((next-branch
+                   (choose-branch (car bits) current-branch)))
+              (if (leaf? next-branch)
+                  (cons (symbol-leaf next-branch)
+                        (decode-1 (cdr bits) tree))
+                  (decode-1 (cdr bits) next-branch)))))
+      (decode-1 bits tree)))
+  (define (choose-branch bit branch)
+    (cond ((= bit 0) (left-branch-ct branch))
+          ((= bit 1) (right-branch-ct branch))
+          (else (error 'choose-branch "bad bit: ~a" bit))))
+#+end_src
+*Sets of weighted elements*
+#+begin_src scheme
+  (define (adjoin-set-order x set)
+    (cond ((null? set) (list x))
+          ((< (weight-ct x) (weight-ct (car set)))
+           (cons x set))
+          (else (cons (car set)
+                      (adjoin-set-order x (cdr set))))))
+
+  ;; tranform '((A 4) (B 2) (C 1) (D 1)) to leaf-set
+  (define (make-leaf-set pairs)
+    (if (null? pairs)
+        '()
+        (let ((pair (car pairs)))
+          (adjoin-set-order (make-leaf (car pair)
+                                 (cadr pair))
+                      (make-leaf-set (cdr pairs))))))
+#+end_src
+*2.67*
+#+begin_src scheme
+  (define sample-tree
+    (make-code-tree (make-leaf 'A 4)
+                    (make-code-tree
+                     (make-leaf 'B 2)
+                     (make-code-tree
+                      (make-leaf 'D 1)
+                      (make-leaf 'C 1)))))
+  (define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+
+  (decode sample-message sample-tree) ;'(A D A B B C A)
+#+end_src
+*** 2.68
+#+begin_src scheme
+  (define (encode message tree)
+    (if (null? message)
+        '()
+        (append (encode-symbol (car message) tree)
+                (encode (cdr message) tree))))
+
+  (define (encode-symbol sym tree)
+    (define (es sym current-branch)
+      (if (leaf? current-branch)
+          '()
+          (let ((left-syms (symbols-ct (left-branch-ct current-branch))))
+            (if (memq sym left-syms)
+                (cons 0 (es sym (left-branch-ct current-branch)))
+                (cons 1 (es sym (right-branch-ct current-branch)))))))
+    (if (memq sym (symbols-ct tree))
+        (es sym tree)
+        (error 'encode-symbol "symbol: ~a not in the tree" sym)))
+
+  (encode '(A D A B B C A) sample-tree)
+#+end_src
+*** 2.69
+#+begin_src scheme
+  (define (generate-huffman-tree pairs)
+    (successive-merge (make-leaf-set pairs)))
+  (define successive-merge
+    (lambda (set)
+      (cond ((null? set) '())
+            ((singleton? set) (car set))
+            (else
+             (successive-merge
+              (adjoin-set-order (make-code-tree (car set)
+                                                (cadr set))
+                                (cddr set)))))))
+
+  (generate-huffman-tree '((A 4) (B 2) (C 1) (D 1)))
+#+end_src
+*** 2.70
+#+begin_src scheme
+  (define pairs-rock
+    '((A 2) (GET 2) (SHA 3) (WAH 1)
+      (BOOM 1) (JOB 2) (NA 16) (YIP 9)))
+
+  (define tree-rock
+    (generate-huffman-tree pairs-rock))
+
+  (define message-rock
+    '(GET A JOB
+          SHA NA NA NA NA NA NA NA NA
+          GET A JOB
+          SHA NA NA NA NA NA NA NA NA
+          WAH YIP YIP YIP YIP YIP YIP YIP YIP YIP
+          SHA BOOM))
+  (define code (encode message-rock tree-rock))
+  (length code) ;84
+  (length message-rock) ;36
+  ;; if we encode using a fixed-length code, each symbol needs three bits.
+  ;; there are 36 symbols, we need 36*3=108 bits.
+  ;; (/ 84. 108) = 0.78, we save 22% space by huffman code.
+#+end_src
+*** 2.71
+#+begin_src scheme
+  (define pair-5
+    '((A 1) (B 2) (C 4) (D 8) (E 16)))
+  (define tree-5
+    (generate-huffman-tree pair-5))
+  (encode '(A) tree-5) ;0000
+  (encode '(E) tree-5) ;1
+  (encode '(D) tree-5) ;01
+
+  (define (pairs-exp n)
+    (define (iter x result)
+      (if (= x n)
+          result
+          (iter (+ x 1)
+                (append result
+                        (list (list x (expt 2 x)))))))
+    (iter 0 '()))
+  (define tree5
+    (generate-huffman-tree (pairs-exp 5)))
+  (encode '(0) tree5) ;'(0 0 0 0)
+  (encode '(4) tree5) ;'(1)
+  (define tree10
+    (generate-huffman-tree (pairs-exp 10)))
+  (encode '(0) tree10) ;'(0 0 0 0 0 0 0 0 0)
+  (encode '(9) tree10) ;'(1)
+#+end_src
+*** 2.72
+look at tree5, the depth of tree5 is n, and it is unbalanced. most of the element is on the left tree.
+when encode the most frequent symbol, we need n step which is cost mostly at search the symbol list.
+when encode the least frequent symbol, we need 2n step. we need downward the tree n times, and search the symbol list n times. the least frequent symbol is the head of the list, so we only need const time for searching it.
+
+we can optimize ~make-code-tree~ making left tree containing less elements than right tree. then we can encode the most frequent symbol at const time, and encode the least frequent symbol by O(N) steps.
+#+begin_example
+  '(((((leaf 0 1) (leaf 1 2) (0 1) 3) (leaf 2 4) (0 1 2) 7)
+     (leaf 3 8)
+     (0 1 2 3)
+     15)
+    (leaf 4 16)
+    (0 1 2 3 4)
+    31)
+#+end_example
+
+** 2.4 Multiple Representations for Abstract Data
+*generic procedures*: procedures that can operate on data that may be represented in more than one way.
+data objects that have type tags and data-directed style enable us to define generic operations.
+** 2.4.1 Representations for Complex Numbers
+define abstract operations for complex numbers:
+#+begin_src scheme
+  (define real-part
+    (lambda (z) '()))
+  (define imag-part
+    (lambda (z) '()))
+  (define magnitude
+    (lambda (z) '()))
+  (define angle
+    (lambda (z) '()))
+  (define make-from-real-imag
+    (lambda (real imag) '()))
+  (define make-from-mag-ang
+    (lambda (mag ang) '()))
+#+end_src
+we can define basic complex operation based on selectors and constructors:
+#+begin_src scheme
+  (define (add-complex z1 z2)
+    (make-from-real-imag (+ (real-part z1) (real-part z2))
+                         (+ (imag-part z1) (imag-part z2))))
+  (define (sub-complex z1 z2)
+    (make-from-real-imag (- (real-part z1) (real-part z2))
+                         (- (imag-part z1) (imag-part z2))))
+  (define (mul-complex z1 z2)
+    (make-from-mag-ang (* (magnitude z1) (magnitude z2))
+                       (+ (angle z1) (angle z2))))
+  (define (div-complex z1 z2)
+    (make-from-mag-ang (/ (magnitude z1) (magnitude z2))
+                       (- (angle z1) (angle z2))))
+#+end_src
+
+** 2.4.2 Tagged data
+in order to have multiple representation for the same abstract data, we need tagged data.
+#+begin_src scheme
+  (define (attach-tag type-tag contents)
+    (cons type-tag contents))
+  (define (type-tag datum)
+    (if (pair? datum)
+        (car datum)
+        (error 'type-tag "Bad tagged datum: ~a" datum)))
+  (define (contents datum)
+    (if (pair? datum)
+        (cdr datum)
+        (error 'contents "Bad tagged datum: ~a" datum)))
+
+  (define (rectangular? z)
+    (eq? (type-tag z) 'rectangular))
+  (define (polar? z)
+    (eq? (type-tag z) 'polar))
+
+  ;; rectangular representation
+  (define (real-part-rectangular z) (car z))
+  (define (imag-part-rectangular z) (cdr z))
+  (define (magnitude-rectangular z)
+    (sqrt (+ (square (real-part-rectangular z))
+             (square (imag-part-rectangular z)))))
+  (define (angle-rectangular z)
+    (atan (imag-part-rectangular z)
+          (real-part-rectangular z)))
+  (define (make-from-real-imag-rectangular x y)
+    (attach-tag 'rectangular (cons x y)))
+  (define (make-from-mag-ang-rectangular r a)
+    (attach-tag 'rectangular
+                (cons (* r (cos a)) (* r (sin a)))))
+  ;; polar representation
+  (define (real-part-polar z)
+    (* (magnitude-polar z) (cos (angle-polar z))))
+  (define (imag-part-polar z)
+    (* (magnitude-polar z) (sin (angle-polar z))))
+  (define (magnitude-polar z) (car z))
+  (define (angle-polar z) (cdr z))
+  (define (make-from-real-imag-polar x y)
+    (attach-tag 'polar
+                (cons (sqrt (+ (square x) (square y)))
+                      (atan y x))))
+  (define (make-from-mag-ang-polar r a)
+    (attach-tag 'polar (cons r a)))
+  ;; generic abstract operations
+  (define (real-part z)
+    (cond ((rectangular? z)
+           (real-part-rectangular (contents z)))
+          ((polar? z)
+           (real-part-polar (contents z)))
+          (else (error 'real-part "Unknown type: ~a" z))))
+  (define (imag-part z)
+    (cond ((rectangular? z)
+           (imag-part-rectangular (contents z)))
+          ((polar? z)
+           (imag-part-polar (contents z)))
+          (else (error 'imag-part "Unknown type: IMAG-PART" z))))
+  (define (magnitude z)
+    (cond ((rectangular? z)
+           (magnitude-rectangular (contents z)))
+          ((polar? z)
+           (magnitude-polar (contents z)))
+          (else (error 'magnitude "Unknown type: MAGNITUDE" z))))
+  (define (angle z)
+    (cond ((rectangular? z)
+           (angle-rectangular (contents z)))
+          ((polar? z)
+           (angle-polar (contents z)))
+          (else (error 'angle "Unknown type: ANGLE" z))))
+  ;; constructors
+  (define (make-from-real-imag x y)
+    (make-from-mag-ang-rectangular x y))
+  (define (make-from-mag-ang r a)
+    (make-from-mag-ang-polar r a))
+#+end_src
+*This discipline of stripping oﬀ and aaching tags as data objects are
+passed from level to level can be an important organizational strategy*
+** 2.4.3 Data-Directed Programming and Additivity
+#+begin_src scheme
+  (define *op-table* (make-hash))
+  (define put
+    (lambda (op type item)
+      (hash-set! *op-table* (list op type) item)))
+  (define get
+    (lambda (op type)
+      (hash-ref *op-table* (list op type) #f)))
+
+  (define *coercion-table* (make-hash))
+  (define (put-coercion op type item)
+    (hash-set! *coercion-table* (list op type) item))
+  (define (get-coercion op type)
+    (hash-ref *coercion-table* (list op type) #f))
+#+end_src
+install rectangular-package and polar-package
+#+begin_src scheme
+  (define (install-rectangular-package)
+    ;;internal procedures
+    (define (real-part z) (car z))
+    (define (imag-part z) (cdr z))
+    (define (make-from-real-imag x y)
+      (cons x y))
+    (define (magnitude z)
+      (sqrt (+ (square (real-part-rectangular z))
+               (square (imag-part-rectangular z)))))
+    (define (angle z)
+      (atan (imag-part-rectangular z)
+            (real-part-rectangular z)))
+    (define (make-from-mag-ang r a)
+      (cons (* r (cos a)) (* r (sin a))))
+    ;; interface to the rest of the system
+    (define (tag x) (attach-tag 'rectangular x))
+    (put 'real-part '(rectangular) real-part)
+    (put 'imag-part '(rectangular) imag-part)
+    (put 'magnitude '(rectangular) magnitude)
+    (put 'angle '(rectangular) angle)
+    ;; we must tag the result for the outer system to recognize.
+    (put 'make-from-real-imag 'rectangular
+         (lambda (x y) (tag (make-from-real-imag x y))))
+    (put 'make-from-mag-ang 'rectangular
+         (lambda (r a) (tag (make-from-mag-ang r a))))
+    'done)
+
+  (define (install-polar-package)
+    ;;internal procedures
+    (define (real-part z)
+      (* (magnitude-polar z) (cos (angle-polar z))))
+    (define (imag-part z)
+      (* (magnitude-polar z) (sin (angle-polar z))))
+    (define (make-from-real-imag x y)
+      (cons (sqrt (+ (square x)
+                     (square y)))
+            (atan y x)))
+    (define (magnitude z) (car z))
+    (define (angle z) (cdr z))
+    (define (make-from-mag-ang r a)
+      (cons r a))
+    ;; interface to the rest of the system
+    (define (tag x) (attach-tag 'polar x))
+    (put 'real-part '(polar) real-part)
+    (put 'imag-part '(polar) imag-part)
+    (put 'magnitude '(polar) magnitude)
+    (put 'angle '(polar) angle)
+    (put 'make-from-real-imag 'polar
+         (lambda (x y) (tag (make-from-real-imag x y))))
+    (put 'make-from-mag-ang 'polar
+         (lambda (r a) (tag (make-from-mag-ang r a))))
+    'done)
+
+  ;; install for test
+  (install-rectangular-package)
+  (install-polar-package)
+#+end_src
+for the rest of the system, we can use apply-generic to define our generic selectors.
+#+begin_src scheme
+  (define (apply-generic op . args)
+    (let ((type-tags (map type-tag args)))
+      (let ((proc (get op type-tags)))
+        (if proc
+            (apply proc (map contents args))
+            (error 'apply-generic "No method for these types: ~a"
+                   (list op type-tags))))))
+  ;; generic selectors
+  (define (real-part z) (apply-generic 'real-part z))
+  (define (imag-part z) (apply-generic 'imag-part z))
+  (define (magnitude z) (apply-generic 'magnitude z))
+  (define (angle z) (apply-generic 'angle z))
+  ;; generic constructors
+  (define (make-from-real-imag x y)
+    ((get 'make-from-real-imag 'rectangular) x y))
+  (define (make-from-mag-ang r a)
+    ((get 'make-from-mag-ang 'polar) r a))
+#+end_src
+
+*** 2.73
+a. number and variable only have one value. we cannot get operator from them.
+b.c.
+#+begin_src scheme :tangle no
+  (define (deriv3 exp var)
+    (cond ((number? exp) 0)
+          ((variable? exp) (if (same-variable? exp var) 1 0))
+          (else ((get 'deriv3 (operator exp))
+                 (operands exp) var))))
+  (define (operator exp) (car exp))
+  (define (operands exp) (cdr exp))
+#+end_src
+#+begin_src scheme :tangle no
+  (define (install-deriv-package)
+    ;; auxiliary procedure
+    (define make-sum
+      (lambda (a b) '(+ a b)))
+    (define make-product
+      (lambda (a b) '(* a b)))
+    (define make-exp
+      (lambda (b exp) '(** b exp)))
+    (define addend
+      (lambda (x) (car x)))
+    (define augend
+      (lambda (x) (cadr x)))
+    (define multiplier
+      (lambda (x) (car x)))
+    (define multiplicand
+      (lambda (x) (cadr x)))
+    (define base
+      (lambda (x) (car x)))
+    (define exp
+      (lambda (x) (cadr x)))
+    ;; internal procedures
+    (define deriv-sum
+      (lambda (operands var)
+        (make-sum (deriv3 (addend operands) var)
+                  (deriv3 (augend operands) var))))
+    (define deriv-product
+      (lambda (operands var)
+        (make-sum (make-product
+                   (multiplier operands)
+                   (deriv3 (multiplicand operands) var))
+                  (make-product
+                   (deriv3 (multiplier operands) var)
+                   (multiplicand operands)))))
+    (define deriv-exp
+      (lambda (operands var)
+        (let ((n (exp operands))
+              (b (base operands)))
+          (make-product
+           n
+           (make-product
+            (make-exp b (- n 1))
+            (deriv3 b var))))))
+    ;; interface to the rest of the system
+    (put 'deriv3 '+ deriv-sum)
+    (put 'deriv3 '* deriv-product)
+    (put 'deriv3 '** deriv-exp)
+    'done)
+#+end_src
+d. when we change get procedure to ~(get (operator exp) 'deriv)~, we only need to change put to ~(put '+ 'deriv deriv-sum)~
+*** 2.74
+division file: (records)
+record : (name . entrys)
+entry : (address . "xxx")
+#+begin_src scheme
+  ;;a
+  (define get-record
+    (lambda (name file)
+      ((get 'get-record (type-tag file))
+       name (contents file))))
+  ;;b
+  (define get-salary
+    (lambda (record)
+      ((get 'get-salary (type-tag record))
+       (contents record))))
+  ;;c
+  (define find-employee-record
+    (lambda (name files)
+      (if (null? files)
+          '()
+          (let* ((file (car files))
+                (record ((get 'get-record (type-tag file))
+                         name (contents file))))
+            (if ((get 'empty-record? (type-tag record))
+                 (contents record))
+                (find-employee-record name (cdr files))
+                record)))))
+  ;;d
+  (define (install-division-purchase-package)
+    ;; internal procedures
+    (define get-record
+      (lambda (name file)
+        (if (null? file)
+            '()
+            (let* ((r (car file))
+                  (k (k-record r)))
+              (if (eq? name k)
+                  (car file)
+                  (get-record name (cdr file)))))))
+    (define k-record
+      (lambda (record)
+        (car record)))
+    (define v-record
+      (lambda (record)
+        (cdr record)))
+    (define empty-record?
+      (lambda (record)
+        (null? record)))
+    (define get-salary
+      (lambda (record)
+        (get-entry 'salary (v-record record))))
+    (define get-entry
+      (lambda (type entrys)
+        (if (null? entrys)
+            '()
+            (let* ((entry (car entrys))
+                   (t (k-entry entry)))
+              (if (eq? type t)
+                  entry
+                  (get-entry type (cdr entrys)))))))
+    (define k-entry
+      (lambda (entry) (car entry)))
+    ;; interface to the rest of the system
+    (define divname 'purchase)
+    (define (tag x) (attach-tag divname x))
+    (put 'get-record divname
+         (lambda (name file) (tag (get-record name file))))
+    (put 'get-salary divname get-salary)
+    (put 'empty-record? divname empty-record?)
+    'done)
+#+end_src
+*** 2.75 Message passing
+generic operation procedure dispatch on data types.
+"intelligent data objects" dispatch on operation names. its called message passing.
+#+begin_src scheme
+  ;; message passing style of programming
+  (define (make-from-mag-ang-mp x y)
+    (define (dispatch op)
+      (cond ((eq? op 'real-part) (* x (cos y)))
+            ((eq? op 'imag-part) (* x (sin y)))
+            ((eq? op 'magnitude) x)
+            ((eq? op 'angle y))
+            (else (error 'mfmam "Unknown op: ~a" op))))
+    dispatch)
+#+end_src
+*** 2.76
+there are three strategies to cope with generic operations.
+- generic operations with explicit dispatch
+- data-directed style
+- message-passing style
+
+if new types must often be added in a system. generic operations must be modified to explicit handle new types. the other two support it very well, without changing existing code.
+
+if new operations must often be added in a system. the previous operations need not modify for generic operations, we only need add a new operation to support multiple types. but when add new operation, we must avoid name conflict.
+for data-directed style. we must modify each installed package to support the new operation. the same as message-passing style.
+
+there are better explanations at [[http://community.schemewiki.org/?sicp-ex-2.76][this link]], you can check *torinmr* and *rwitak* answers. i cite some below. you can also refer [[http://wiki.c2.com/?ExpressionProblem][ExpressionProblem]].
+#+begin_example
+  Hmmm, people seem to be forgetting that there are three strategies here, not just two:
+
+  For generic operations with explicit dispatch (which is the same as the "functional programming approach" described in the wiki link above), adding new operations is easy (i.e. can be done without changing existing code).
+
+  For message passing, adding new types can be done without changing existing code, but adding new operations requires changing all the old code.
+
+  Data directed programming actually "solves" the Expression problem by allowing new types *and* new operations to be added without changing existing code: To add a new type I just fill out a new column in the table of operations, to add a new operation I fill out a new row. (Note that style used in the book of putting all the operations for e.g. the rectangular representation together makes it seem like adding a new operation to all the representations would be hard, but there's nothing stopping me from having my own define block where I register a 'complex-conjuage method under 'rectangular and 'polar.)
+
+  Of course, the amount of code that needs to be written to add a new type or operation is about the same under all three approaches - the only difference is how spread out that code needs to be, and how easy it is to locate all the places where code needs to be changed. Data directed programming seems to optimize for the former at the expense of the latter.
+#+end_example
+
+** 2.5 Systems with Generic Operations
+Now we will see how to use generic interface procedure not only to deﬁne operations that are generic over different representations but also to deﬁne operations that are generic over different kinds of arguments.
+** 2.5.1 Generic Arithmetic Operations
+*** example
+#+begin_src scheme
+  ;; generic interface procedures
+  (define add
+    (lambda (x y) (apply-generic 'add x y)))
+  (define sub
+    (lambda (x y) (apply-generic 'sub x y)))
+  (define mul
+    (lambda (x y) (apply-generic 'mul x y)))
+  (define div
+    (lambda (x y) (apply-generic 'div x y)))
+
+  ;; install a package for scheme-number
+  (define (install-scheme-number-package)
+    (define (tag x) (attach-tag 'scheme-number x))
+    (put 'add '(scheme-number scheme-number)
+         (lambda (x y) (tag (+ x y))))
+    (put 'sub '(scheme-number scheme-number)
+         (lambda (x y) (tag (- x y))))
+    (put 'mul '(scheme-number scheme-number)
+         (lambda (x y) (tag (* x y))))
+    (put 'div '(scheme-number scheme-number)
+         (lambda (x y) (tag (/ x y))))
+    (put 'make 'scheme-number (lambda (x) (tag x)))
+    'done)
+  ;; users of the scheme-number package will create (tagged) ordinary
+  ;; numbers by means of the procedure:
+  (define (make-scheme-number n)
+    ((get 'make 'scheme-number) n))
+
+  ;; install rational-number package
+  (define (install-rational-package)
+    ;; internal procedures
+    (define (make-rat n d)
+      (let ((g (gcd n d)))
+        (cons (/ n g) (/ d g))))
+    (define (numer rat) (car rat))
+    (define (denom rat) (cdr rat))
+    (define (add-rat x y)
+      (make-rat (+ (* (numer x) (denom y))
+                   (* (numer y) (denom x)))
+                (* (denom x) (denom y))))
+    (define (sub-rat x y)
+      (make-rat (- (* (numer x) (denom y))
+                   (* (numer y) (denom x)))
+                (* (denom x) (denom y))))
+    (define (mul-rat x y)
+      (make-rat (* (numer x) (numer y))
+                (* (denom x) (denom y))))
+    (define (div-rat x y)
+      (make-rat (* (numer x) (denom y))
+                (* (denom x) (numer y))))
+    ;; interface to rest of the system
+    (define (tag x) (attach-tag 'rational x))
+    (put 'add '(rational rational)
+         (lambda (x y) (tag (add-rat x y))))
+    (put 'sub '(rational rational)
+         (lambda (x y) (tag (sub-rat x y))))
+    (put 'mul '(rational rational)
+         (lambda (x y) (tag (mul-rat x y))))
+    (put 'div '(rational rational)
+         (lambda (x y) (tag (div-rat x y))))
+    (put 'make 'rational
+         (lambda (n d) (tag (make-rat n d))))
+    ;; selectors
+    (put 'numer '(rational) numer)
+    (put 'denom '(rational) denom)
+    'done)
+  ;; for users of the package
+  (define (make-rational n d)
+    ((get 'make 'rational) n d))
+
+
+  ;; install complex package
+  (define (install-complex-package)
+    ;; import procedures from rectangular and polar packages
+    ;; refer to exercise 2.4.3
+    (define (make-from-real-image x y)
+      ((get 'make-from-real-image 'rectangular) x y))
+    (define (make-from-mag-ang r a)
+      ((get 'make-from-mag-ang 'polar) r a))
+    ;; internal procedures
+    ;; real-part is another generic interface defined by the system
+    (define (add-complex z1 z2)
+      (make-from-real-imag (+ (real-part z1) (real-part z2))
+                           (+ (imag-part z1) (imag-part z2))))
+    (define (sub-complex z1 z2)
+      (make-from-real-imag (- (real-part z1) (real-part z2))
+                           (- (imag-part z1) (imag-part z2))))
+    (define (mul-complex z1 z2)
+      (make-from-mag-ang (* (magnitude z1) (magnitude z2))
+                         (+ (angle z1) (angle z2))))
+    (define (div-complex z1 z2)
+      (make-from-mag-ang (/ (magnitude z1) (magnitude z2))
+                         (- (angle z1) (angle z2))))
+    ;; interface to rest of the system
+    (define (tag z) (attach-tag 'complex z))
+    (put 'add '(complex complex)
+         (lambda (z1 z2) (tag (add-complex z1 z2))))
+    (put 'sub '(complex complex)
+         (lambda (z1 z2) (tag (sub-complex z1 z2))))
+    (put 'mul '(complex complex)
+         (lambda (z1 z2) (tag (mul-complex z1 z2))))
+    (put 'div '(complex complex)
+         (lambda (z1 z2) (tag (div-complex z1 z2))))
+    (put 'make-from-real-imag 'complex
+         (lambda (x y) (tag (make-from-real-imag x y))))
+    (put 'make-from-mag-ang 'complex
+         (lambda (r a) (tag (make-from-mag-ang r a))))
+    ;; interface to selectors with complex
+    (put 'real-part '(complex) real-part)
+    (put 'imag-part '(complex) imag-part)
+    (put 'magnitude '(complex) magnitude)
+    (put 'angle '(complex) angle)
+    'done)
+  ;; for the users of the package
+  (define (make-complex-from-real-imag x y)
+    ((get 'make-from-real-imag 'complex) x y))
+  (define (make-complex-from-mag-ang r a)
+    ((get 'make-from-mag-ang 'complex) r a))
+
+  ;; install for test
+  (install-scheme-number-package)
+  (install-rational-package)
+  (install-complex-package)
+#+end_src
+*** 2.77
+apply-generic is invoked twice. once dispatch to complex package, once dispatch to rectangular package.
+#+begin_src scheme :tangle no
+  (magnitude z)
+  (magnitude (complex . (rectangular . (x y))))
+  (apply-generic 'magnitude (complex . (rectangular . (x y))))
+  ((get 'magnitude '(complex)) (rectangular . (x y))) ;;dispatched to complex package
+  (magnitude (rectangular . (x y))) ;; procedure in complex package
+  (apply-generic 'magnitude (rectangular . (x y)))
+  ((get 'magnitude '(rectangular)) (x y)) ;; dispatched to rectangular package
+  (magnitude (x y)) ;; procedure in rectangular package
+  (sqrt (+ (square x) (square y)))
+#+end_src
+*** 2.78
+Modify the deﬁnitions of type-tag, contents, and attach-tag from Section 2.4.2 to support scheme number directly.
+#+begin_src scheme
+  (define (attach-tag type-tag contents)
+    (cons type-tag contents))
+  (define (type-tag datum)
+    (if (pair? datum)
+        (car datum)
+        (if (number? datum)
+            'scheme-number
+            (error 'type-tag "Bad tagged datum: ~a" datum))))
+  (define (contents datum)
+    (if (pair? datum)
+        (cdr datum)
+        (if (number? datum)
+            datum
+            (error 'contents "Bad tagged datum: ~a" datum))))
+#+end_src
+*** 2.79
+#+begin_src scheme
+  (define (equ? x y)
+    (apply-generic 'equ? x y))
+
+  (define (install-equ?-package)
+    ;; internal procedures
+    ;; for rational numbers
+    (define (numer rat) (car rat))
+    (define (denom rat) (cdr rat))
+    (define (equal-rat? x y)
+      (= (* (numer x) (denom y))
+         (* (numer y) (denom x))))
+    ;; for complex numbers
+    (define (equ-complex? x y)
+      (and (equ? (real-part x) (real-part y)) ;for exe 2.86
+           (equ? (imag-part x) (imag-part y))))
+
+    ;; interface to the rest of the system
+    ;; for ordinary numbers
+    (put 'equ? '(scheme-number scheme-number) =)
+    ;; for rational numbers
+    (put 'equ? '(rational rational) equal-rat?)
+    ;; for complex numbers
+    (put 'equ? '(complex complex) equ-complex?)
+    ;; for integer and real. exe2.85
+    (put 'equ? '(integer integer) =)
+    (put 'equ? '(real real) =)
+    'done)
+
+  ;; install
+  (install-equ?-package)
+#+end_src
+*** 2.80
+#+begin_src scheme
+  (define (=zero? x)
+    (apply-generic '=zero? x))
+
+  ;; we could also install each procedure in each corresponding package.
+  (define (install-=zero?-package)
+    ;;internal
+    (define (=zero-scheme? x)
+      (= x 0))
+    (define (=zero-rational? x)
+      (= (numer x) 0))
+    (define (=zero-complex? x)
+      (and (= (real-part x) 0)
+           (= (imag-part x) 0)))
+
+    ;; interface
+    ;; scheme number
+    (put '=zero? '(scheme-number) =zero-scheme?)
+    (put '=zero? '(integer) =zero-scheme?)
+    (put '=zero? '(real) =zero-scheme?)
+      ;; rational
+    (put '=zero? '(rational) =zero-rational?)
+    ;; complex
+    (put '=zero? '(complex) =zero-complex?)
+    'done)
+  ;; install
+  (install-=zero?-package)
+#+end_src
+
+** 2.5.2 Combining Data of Different Types
+*** example
+#+begin_src scheme :tangle no
+  ;;a
+  ;; when call exp with two complex numbers, we will result in infinite loop.
+  ;; proc is always #f and procedure t1->t2 returns the same type all the time.
+
+  ;;b
+  ;; Louis isn't correct. apply-generic shouldn't try coercion when two arguments
+  ;; have the same type.
+
+  ;;c
+  (define (apply-generic op . args)
+    (let ((type-tags (map type-tag args)))
+      (let ((proc (get op type-tags)))
+        (if proc
+            (apply proc (map contents args))
+            (if (= (length args) 2)
+                (let ((type1 (car type-tags))
+                      (type2 (cadr type-tags))
+                      (a1 (car args))
+                      (a2 (cadr args)))
+                  (if (not (eq? type1 type2))
+                      (let ((t1->t2 (get-coercion type1 type2))
+                            (t2->t1 (get-coercion type2 type1)))
+                        (cond (t1->t2
+                               (apply-generic op (t1->t2 a1) a2))
+                              (t2->t1
+                               (apply-generic op a1 (t2->t1 a2)))
+                              (else (error 'apply-generic
+                                           "No method for these types"
+                                           (list op type-tags)))))
+
+                      (error 'apply-generic
+                             "No method for these types" (list op type-tags))))
+                (error 'apply-generic
+                       "No method for these types" (list op type-tags)))))))
+#+end_src
+
+*** 2.82
+this procedure doesn't cover the situation where there are some mixed-type operations present in the table.
+#+begin_src scheme
+  ;; apply coercion with multiple arguments
+  (define (apply-generic op . args)
+      (let ((type-tags (map type-tag args)))
+        (let ((proc (get op type-tags)))
+          (if proc
+              (apply proc (map contents args))
+              (apply-coercion op args type-tags)))))
+
+  (define (apply-coercion op args type-tags)
+    (define (iter tags)
+      (if (not (null? tags))
+          (let ((cargs (coerce-args (car tags))))
+            (if cargs
+                (apply apply-generic (cons op cargs))
+                (iter (cdr tags))))
+          (error 'apply-generic "No method for these types: ~a"
+                 (list op type-tags))))
+    (define (coerce-args tag)
+      (define (iter args tags result)
+        (if (null? args)
+            result
+            (let* ((arg (car args))
+                   (t (car tags))
+                   (t->tag (get-coercion t tag)))
+              (if t->tag
+                  (iter (cdr args)
+                        (cdr tags)
+                        (cons (t->tag arg)
+                              result))
+                  #f))))
+      (iter args type-tags '()))
+    (define (same-type? tag tags)
+      (andmap (lambda (x) (eq? x tag)) tags))
+    (let ((rdtags (remove-duplicates type-tags)))
+      (if (and (>= (length args) 2)
+               (not (same-type? (car rdtags) rdtags)))
+          (iter rdtags)
+          (error 'apply-generic "No method for these types: ~a"
+                 (list op type-tags)))))
+#+end_src
+
+*** 2.83
+install a generic ~raise~ operation with the tower of types: integer, rational, real, complex.
+#+begin_src scheme
+  ;; generic interface
+  (define (raise x)
+    (apply-generic 'raise x))
+
+  (define (install-raise-package)
+    ;;internal
+    (define (integer->rational x)
+      (make-rational x 1))
+    (define (rational->real r)
+      (attach-tag 'real (/ (* 1.0 (numer r))
+                           (denom r))))
+    (define (real->complex r)
+      (make-complex-from-real-imag r 0))
+    ;; interface to the rest of the system
+    (put 'raise '(integer) integer->rational)
+    (put 'raise '(rational) rational->real)
+    (put 'raise '(real) real->complex)
+    'done)
+  ;; install
+  (install-raise-package)
+
+  ;; install integer package
+  (define (install-integer-package)
+    (put 'add '(integer integer) +)
+    (put 'sub '(integer integer) -)
+    (put 'mul '(integer integer) *)
+    (put 'div '(integer integer) quotient)
+    'done)
+  (define (install-real-package)
+    (put 'add '(real real) +)
+    (put 'sub '(real real) -)
+    (put 'mul '(real real) *)
+    (put 'div '(real real) /)
+    'done)
+  ;; install
+  (install-integer-package)
+  (install-real-package)
+  ;; modify type-tag
+  (define (type-tag datum)
+    (cond ((pair? datum) (car datum))
+          ((integer? datum) 'integer)
+          ((real? datum) 'real)
+          (else (error 'type-tag "Bad tagged datum: ~a" datum))))
+#+end_src
+
+*** 2.84
+#+begin_src scheme
+  ;; apply coercion with multiple arguments
+  (define (apply-generic op . args)
+    (let ((type-tags (map type-tag args)))
+      (let ((proc (get op type-tags)))
+        (if proc
+            (apply proc (map contents args))
+            (apply-coercion op args type-tags)))))
+  (define (apply-coercion op args type-tags)
+    (define (iter tags)
+      (if (not (null? tags))
+          (let ((cargs (coerce-args (car tags))))
+            (if cargs
+                (apply apply-generic (cons op cargs))
+                (iter (cdr tags))))
+          (error 'apply-generic "No method for these types1: ~a"
+                 (list op type-tags))))
+    (define (coerce-args tag)
+      (define (ca args tags result)
+        (if (null? args)
+            result
+            (let* ((arg (car args))
+                   (t (car tags))
+                   (t->tag (raise-to t tag))) ;this line modified
+              (if t->tag
+                  (ca (cdr args)
+                      (cdr tags)
+                      (cons (t->tag arg)
+                            result))
+                  #f))))
+      (ca args type-tags '()))
+    (define (same-type tag tags)
+      (andmap (lambda (x) (eq? x tag)) tags))
+    (let ((rdtags (remove-duplicates type-tags)))
+      (if (and (>= (length args) 2)
+               (not (same-type (car rdtags) rdtags)))
+          (iter rdtags)
+          (error 'apply-generic
+                 "No method for these types2: ~a"
+                 (list op type-tags)))))
+
+  (define type-tower '(integer rational real complex))
+  (define (higher-type? type1 type2)
+    (let ((i1 (index-of type-tower type1))
+          (i2 (index-of type-tower type2)))
+      (if (and (real? i1) (real? i2))
+          (> i1 i2)
+          (error 'higher-type? "Unknown types: ~a ~a"
+                 (if (real? i1) "" type1)
+                 (if (real? i2) "" type2)))))
+  (define (lower-type? type1 type2)
+    (and (not (higher-type? type1 type2))
+         (not (eq? type1 type2))))
+
+  (define (raise-to type1 type2)
+    (define (iter t1 t2)
+      (lambda (x)
+        (let* ((px (raise x))
+               (pt (type-tag px)))
+          (if (eq? pt t2)
+              px
+              ((iter pt t2) px)))))
+    (if (lower-type? type1 type2)
+        (iter type1 type2)
+        (if (eq? type1 type2)
+            (lambda (x) x)
+            #f)))
+#+end_src
+
+*** 2.85
+#+begin_src scheme
+  ;;generic operation
+  (define (project x)
+    (apply-generic 'project x))
+  ;; package
+  (define (install-project-package)
+    ;;internal
+    (define (complex->real z)
+      (real-part z))
+    (define (real->integer x)
+      (round x))
+    (define (rational->integer x)
+      (round (/ (car x)
+                (cdr x))))
+    (define (integer->integer x) x)
+    ;;interface
+    (put 'project '(complex) complex->real)
+    (put 'project '(real) real->integer)
+    (put 'project '(rational) rational->integer)
+    (put 'project '(integer) integer->integer)
+    'done)
+  ;; drop procedure
+  (define (drop-down x)
+    (let* ((p (project x))
+           (xt (type-tag x))
+           (pt (type-tag p)))
+      (if (eq? xt pt)
+          x
+          (let ((px ((raise-to pt xt) p)))
+            (if (equ? x px)
+                (drop-down p)
+                x)))))
+  ;; modify apply-generic
+  ;; apply coercion with multiple arguments
+  (define (apply-generic op . args)
+    (let ((type-tags (map type-tag args)))
+      (let ((proc (get op type-tags)))
+        (let ((val
+               (if proc
+                   (apply proc (map contents args))
+                   (apply-coercion op args type-tags))))
+          (if (memq op '(add sub mul div))
+              (drop-down val)
+              val)))))
+  ;; install
+  (install-project-package)
+  ;; test
+  (add (make-rational 1 2) (make-rational 1 2))
+  (add (make-rational 1 2) (make-rational 1 3))
+  (add 1 (make-complex-from-real-imag 1 2))
+  (sub (make-complex-from-real-imag 3 4) (make-complex-from-real-imag 2.5 4))
+#+end_src
+
+*** 2.86
+#+begin_src scheme
+  ;; other generic operations: sqrt, square, atan, cos, sin
+  (define (sqrt-g x)
+    (apply-generic 'sqrt-g x))
+  (define (square-g x)
+    (apply-generic 'square-g x))
+  (define (sin-g x)
+    (apply-generic 'sin-g x))
+  (define (cos-g x)
+    (apply-generic 'cos-g x))
+  (define (atan-g x)
+    (apply-generic 'atan-g x))
+  ;; install
+  (define (install-integer-oos-package)
+    (put 'sqrt-g '(integer) sqrt)
+    (put 'square-g '(integer) square)
+    (put 'atan-g '(integer) atan)
+    (put 'cos-g '(integer) cos)
+    (put 'sin-g '(integer) sin)
+    'done)
+  (define (install-real-oos-package)
+    (put 'sqrt-g '(real) sqrt)
+    (put 'square-g '(real) square)
+    (put 'atan-g '(real) atan)
+    (put 'cos-g '(real) cos)
+    (put 'sin-g '(real) sin)
+    'done)
+  (define (install-rational-oos-package)
+    ;;internal
+    (define (numer r) (car r))
+    (define (denom r) (cdr r))
+    (define (val r) (/ (numer r) (denom r)))
+    (define (sqrt-g r)
+      (sqrt (val r)))
+    (define square-g
+      (lambda (r) (make-rational (square (numer r))
+                            (square (denom r)))))
+    (define (sin-g r)
+      (sin (val r)))
+    (define (cos-g r)
+      (cos (val r)))
+    (define (atan-g r1 r2)
+      (atan (val r1) (val r2)))
+    ;;interface
+    (put 'sqrt-g '(rational) sqrt-g)
+    (put 'square-g '(rational) square-g)
+    (put 'sin-g '(rational) sin-g)
+    (put 'cos-g '(rational) cos-g)
+    (put 'atan '(rational) atan-g)
+    'done)
+  ;; modify complex package
+  (define (install-complex-package)
+    ;; import procedures from rectangular and polar packages
+    ;; refer to exercise 2.4.3
+    (define (make-from-real-image x y)
+      ((get 'make-from-real-image 'rectangular) x y))
+    (define (make-from-mag-ang r a)
+      ((get 'make-from-mag-ang 'polar) r a))
+    ;; internal procedures
+    ;; real-part is another generic interface defined by the system
+    (define (add-complex z1 z2)
+      (make-from-real-imag (add (real-part z1) (real-part z2))
+                           (add (imag-part z1) (imag-part z2))))
+    (define (sub-complex z1 z2)
+      (make-from-real-imag (sub (real-part z1) (real-part z2))
+                           (sub (imag-part z1) (imag-part z2))))
+    (define (mul-complex z1 z2)
+      (make-from-mag-ang (mul (magnitude z1) (magnitude z2))
+                         (add (angle z1) (angle z2))))
+    (define (div-complex z1 z2)
+      (make-from-mag-ang (div (magnitude z1) (magnitude z2))
+                         (sub (angle z1) (angle z2))))
+    ;; interface to rest of the system
+    (define (tag z) (attach-tag 'complex z))
+    (put 'add '(complex complex)
+         (lambda (z1 z2) (tag (add-complex z1 z2))))
+    (put 'sub '(complex complex)
+         (lambda (z1 z2) (tag (sub-complex z1 z2))))
+    (put 'mul '(complex complex)
+         (lambda (z1 z2) (tag (mul-complex z1 z2))))
+    (put 'div '(complex complex)
+         (lambda (z1 z2) (tag (div-complex z1 z2))))
+    (put 'make-from-real-imag 'complex
+         (lambda (x y) (tag (make-from-real-imag x y))))
+    (put 'make-from-mag-ang 'complex
+         (lambda (r a) (tag (make-from-mag-ang r a))))
+    ;; interface to selectors with complex
+    (put 'real-part '(complex) real-part)
+    (put 'imag-part '(complex) imag-part)
+    (put 'magnitude '(complex) magnitude)
+    (put 'angle '(complex) angle)
+    'done)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (define (install-rectangular-package)
+    ;;internal procedures
+    (define (real-part z) (car z))
+    (define (imag-part z) (cdr z))
+    (define (make-from-real-imag x y)
+      (cons x y))
+    (define (magnitude z)
+      (sqrt-g (add (square-g (real-part z))
+                   (square-g (imag-part z)))))
+    (define (angle z)
+      (atan-g (imag-part z)
+              (real-part z)))
+    (define (make-from-mag-ang r a)
+      (cons (mul r (cos-g a)) (mul r (sin-g a))))
+    ;; interface to the rest of the system
+    (define (tag x) (attach-tag 'rectangular x))
+    (put 'real-part '(rectangular) real-part)
+    (put 'imag-part '(rectangular) imag-part)
+    (put 'magnitude '(rectangular) magnitude)
+    (put 'angle '(rectangular) angle)
+    ;; we must tag the result for the outer system to recognize.
+    (put 'make-from-real-imag 'rectangular
+         (lambda (x y) (tag (make-from-real-imag x y))))
+    (put 'make-from-mag-ang 'rectangular
+         (lambda (r a) (tag (make-from-mag-ang r a))))
+    'done)
+
+  (define (install-polar-package)
+    ;;internal procedures
+    (define (real-part z)
+      (mul (magnitude z) (cos-g (angle z))))
+    (define (imag-part z)
+      (mul (magnitude z) (sin-g (angle z))))
+    (define (make-from-real-imag x y)
+      (cons (sqrt-g (add (square-g x)
+                         (square-g y)))
+            (atan-g y x)))
+    (define (magnitude z) (car z))
+    (define (angle z) (cdr z))
+    (define (make-from-mag-ang r a)
+      (cons r a))
+    ;; interface to the rest of the system
+    (define (tag x) (attach-tag 'polar x))
+    (put 'real-part '(polar) real-part)
+    (put 'imag-part '(polar) imag-part)
+    (put 'magnitude '(polar) magnitude)
+    (put 'angle '(polar) angle)
+    (put 'make-from-real-imag 'polar
+         (lambda (x y) (tag (make-from-real-imag x y))))
+    (put 'make-from-mag-ang 'polar
+         (lambda (r a) (tag (make-from-mag-ang r a))))
+    'done)
+  ;; install
+  (install-integer-oos-package)
+  (install-rational-oos-package)
+  (install-real-oos-package)
+  (install-rectangular-package)
+  (install-polar-package)
+  (install-complex-package)
+  ;;test
+  (define a (make-rational 1 2))
+  (define b (make-rational 1 3))
+  (define ca (make-complex-from-real-imag a 1))
+  (define cb (make-complex-from-real-imag b a))
+  (add ca cb) ; '(complex rectangular (rational 5 . 6) rational 3 . 2)
+#+end_src
+
+** 2.5.3 Example: Symbolic Algebra
+*** 2.87 Arithmetic on polynomials
+#+begin_src scheme
+  (define (install-polynomial-package)
+    ;; internal procedures
+    ;; representation of poly
+    (define (make-poly variable term-list) (cons variable term-list))
+    (define (variable p) (car p))
+    (define (term-list p) (cdr p))
+    ;; representation of terms and term lists
+    (define (adjoin-term term term-list)
+      (if (=zero? (coeff term))
+          term-list
+          (cons term term-list)))
+    (define (the-empty-termlist) '())
+    (define (first-term term-list) (car term-list))
+    (define (rest-terms term-list) (cdr term-list))
+    (define (empty-termlist? term-list) (null? term-list))
+    (define (make-term order coeff) (list order coeff))
+    (define (order term) (car term))
+    (define (coeff term) (cadr term))
+    ;;
+    (define (add-terms L1 L2)
+      (cond ((empty-termlist? L1) L2)
+            ((empty-termlist? L2) L1)
+            (else
+             (let ((t1 (first-term L1))
+                   (t2 (first-term L2)))
+               (cond ((> (order t1) (order t2))
+                      (adjoin-term
+                       t1 (add-terms (rest-terms L1) L2)))
+                     ((< (order t1) (order t2))
+                      (adjoin-term
+                       t2 (add-terms L1 (rest-terms L2))))
+                     (else
+                      (adjoin-term
+                       (make-term (order t1)
+                                  (add (coeff t1) (coeff t2)))
+                       (add-terms (rest-terms L1)
+                                  (rest-terms L2)))))))))
+    (define (mul-terms L1 L2)
+      (if (empty-termlist? L1)
+          (the-empty-termlist)
+          (add-terms (mul-term-by-all-terms (first-term L1) L2)
+                     (mul-terms (rest-terms L1) L2))))
+    (define (mul-term-by-all-terms t1 L)
+      (if (empty-termlist? L)
+          (the-empty-termlist)
+          (let ((t2 (first-term L)))
+            (adjoin-term
+             (make-term (+ (order t1) (order t2))
+                        (mul (coeff t1) (coeff t2)))
+             (mul-term-by-all-terms t1 (rest-terms L))))))
+    ;; internal
+    (define (add-poly p1 p2)
+      (if (same-variable? (variable p1)
+                          (variable p2))
+          (make-poly (variable p1)
+                     (add-terms (term-list p1)
+                                (term-list p2)))
+          (error 'add-poly "Polys not in same var: ~a" (list p1 p2))))
+    (define (mul-poly p1 p2)
+      (if (same-variable? (variable p1)
+                          (variable p2))
+          (make-poly (variable p1)
+                     (mul-terms (term-list p1)
+                                (term-list p2)))
+          (error 'mul-poly "Polys not in same var: ~a" (list p1 p2))))
+    (define (=zero-poly? x)
+      (define (iter L)
+        (if (empty-termlist? L)
+            #t
+            (if (=zero? (coeff (first-term L)))
+                (iter (rest-terms L))
+                #f)))
+      (iter (term-list x)))
+    (define (negation-poly p)
+      (define (neg-terms L)
+        (if (empty-termlist? L)
+            L
+            (adjoin-term (neg-term (first-term L))
+                         (neg-terms (rest-terms L)))))
+      (define (neg-term t)
+        (make-term (order t)
+                   (negation (coeff t))))
+      (make-poly (variable p)
+                 (neg-terms (term-list p))))
+    ;; interface to rest of the system
+    (define (tag p) (attach-tag 'polynomial p))
+    (put 'add '(polynomial polynomial)
+         (lambda (p1 p2) (tag (add-poly p1 p2))))
+    (put 'mul '(polynomial polynomial)
+         (lambda (p1 p2) (tag (mul-poly p1 p2))))
+    (put 'make 'polynomial
+         (lambda (var terms) (tag (make-poly var terms))))
+    (put '=zero? '(polynomial) =zero-poly?)
+    (put 'project '(polynomial)
+         (lambda (p) (tag (identity p))))
+    (put 'negation '(polynomial)
+         (lambda (p) (tag (negation-poly p))))
+    (put 'sub '(polynomial polynomial)
+         (lambda (p1 p2) (tag (add-poly p1 (negation-poly p2)))))
+    'done)
+  (define (make-polynomial var terms)
+    ((get 'make 'polynomial) var terms))
+  ;; install
+  (install-polynomial-package)
+  ;; test
+  (define a (make-polynomial 'x '((3 2) (1 3) (0 4))))
+  (define b (make-polynomial 'x '((2 2) (1 2) (0 2))))
+  (add a b) ;'(polynomial x (3 2) (2 2) (1 5) (0 6))
+  (mul a b) ;'(polynomial x (5 4) (4 4) (3 10) (2 14) (1 14) (0 8))
+#+end_src
+#+begin_src scheme
+  (define (install-=zero?-package)
+    ;;internal
+    (define (=zero-scheme? x)
+      (= x 0))
+    (define (=zero-rational? x)
+      (= (numer x) 0))
+    (define (=zero-complex? x)
+      (and (= (real-part x) 0)
+           (= (imag-part x) 0)))
+    ;; interface
+    ;; scheme number
+    (put '=zero? '(integer) =zero-scheme?)
+    (put '=zero? '(real) =zero-scheme?)
+    ;; rational
+    (put '=zero? '(rational) =zero-rational?)
+    ;; complex
+    (put '=zero? '(complex) =zero-complex?)
+    'done)
+  ;; install
+  (install-=zero?-package)
+#+end_src
+*** 2.88
+#+begin_src scheme
+  (define (negation x)
+    (apply-generic 'negation x))
+  (define (install-negation-package)
+    (define (neg-rational x)
+      (sub (make-rational 0 1)
+           (attach-tag 'rational x)))
+    (define (neg-complex x)
+      (sub (make-complex-from-real-imag 0 0)
+           (attach-tag 'complex x)))
+    (put 'negation '(integer) -)
+    (put 'negation '(rational) neg-rational)
+    (put 'negation '(real) -)
+    (put 'negation '(complex) neg-complex)
+    'done)
+  ;;install
+  (install-negation-package)
+#+end_src
+
+*** 2.89
+#+begin_src scheme
+  (define (repeat x n)
+    (if (<= n 0)
+        '()
+        (cons x (repeat x (- n 1)))))
+  ;;dense representation
+  (define (adjoin-term term term-list)
+    (append
+      (cons (coeff term)
+            (repeat 0 (- (order term)
+                         (length term-list))))
+      term-list))
+  (define (the-empty-termlist) '())
+  (define (first-term term-list)
+    (make-term (- (length term-list) 1)
+               (car term-list)))
+  (define (rest-terms term-list) (cdr term-list))
+  (define (empty-termlist? term-list) (null? term-list))
+  (define (make-term order coeff) (list order coeff))
+  (define (order term) (car term))
+  (define (coeff term) (cadr term))
+#+end_src
+
+*** 2.90 2.91
+#+begin_src scheme
+  (define (install-polynomial-package)
+    ;; for exe 2.92
+    (define (add-wrap x y)
+      (cond ((and (polynomial? x)
+                  (not (polynomial? y)))
+             (add x
+                  (data->poly y (variable x))))
+            ((and (not (polynomial? x))
+                  (polynomial? y))
+             (add (data->poly x (variable y))
+                  y))
+            (else (add x y))))
+    (define (mul-wrap x y)
+      (cond ((and (polynomial? x)
+                  (not (polynomial? y)))
+             (mul x
+                  (data->poly y (variable x))))
+            ((and (not (polynomial? x))
+                  (polynomial? y))
+             (mul (data->poly x (variable y))
+                  y))
+            (else (mul x y))))
+    ;; representation of poly
+    (define (make-poly variable term-list) (cons variable term-list))
+    (define (var p) (car p))
+    (define (terms p) (cdr p))
+    ;; representation of terms and term lists
+    (define (the-empty-termlist t)
+      (let ((type (type-tag t)))
+        (cond ((eq? type 'sparse) (the-sparse-empty-list))
+              ((eq? type 'dense) (the-dense-empty-list))
+              (else (error 'the-empty-termlist "Unknown type: ~a" type)))))
+    (define (make-term t)
+      (lambda (order coeff)
+        (let ((type (type-tag t)))
+          (cond ((eq? type 'sparse) (make-sparse-term order coeff))
+                ((eq? type 'dense) (make-dense-term order coeff))
+                (else (error 'the-empty-termlist "Unknown type: ~a" type))))))
+    ;; helper function: usage of terms
+    (define (add-terms L1 L2)
+      (cond ((empty-termlist? L1) L2)
+            ((empty-termlist? L2) L1)
+            (else
+             (let ((t1 (first-term L1))
+                   (t2 (first-term L2)))
+               (cond ((> (order t1) (order t2))
+                      (adjoin-term
+                       t1 (add-terms (rest-terms L1) L2)))
+                     ((< (order t1) (order t2))
+                      (adjoin-term
+                       t2 (add-terms L1 (rest-terms L2))))
+                     (else
+                      (adjoin-term
+                       ((make-term L1)
+                        (order t1)
+                        (add-wrap (coeff t1) (coeff t2)))
+                       (add-terms (rest-terms L1)
+                                  (rest-terms L2)))))))))
+    (define (mul-terms L1 L2)
+      (if (empty-termlist? L1)
+          (the-empty-termlist L1)
+          (add-terms (mul-term-by-all-terms (first-term L1) L2)
+                     (mul-terms (rest-terms L1) L2))))
+    (define (mul-term-by-all-terms t1 L)
+      (if (empty-termlist? L)
+          (the-empty-termlist t1)
+          (let ((t2 (first-term L)))
+            (adjoin-term
+             ((make-term t1)
+              (+ (order t1) (order t2))
+              (mul-wrap (coeff t1) (coeff t2)))
+             (mul-term-by-all-terms t1 (rest-terms L))))))
+    (define (div-terms L1 L2)
+      (define emptylist (the-empty-termlist L1))
+      (define mterm (make-term L1))
+      (if (empty-termlist? L1)
+          (list emptylist emptylist)
+          (let ((t1 (first-term L1))
+                (t2 (first-term L2)))
+            (if (> (order t2) (order t1))
+                (list emptylist L1)
+                (let ((new-c (div (coeff t1) (coeff t2)))
+                      (new-o (- (order t1) (order t2))))
+                  (let* ((new-term (mterm new-o new-c))
+                         (rest-of-result (let* ((p1 (make-poly 'x L1))
+                                                (p2 (make-poly 'x L2))
+                                                (p3 (make-poly 'x (adjoin-term new-term
+                                                                               emptylist)))
+                                                (p-rest (sub-poly p1
+                                                                  (mul-poly p2 p3)))
+                                                (t-rest (terms p-rest)))
+                                           (if (or (empty-termlist? t-rest)
+                                                   (< (order (first-term t-rest)) (order t1)))
+                                               (div-terms t-rest L2)
+                                               (error 'div-terms
+                                                      "Terms cannot be divisible: ~a, ~a"
+                                                      t1 t2)))))
+                    (list (adjoin-term new-term
+                                       (car rest-of-result))
+                          (cadr rest-of-result))))))))
+    ;; for 2.94
+    (define (remainder-terms L1 L2)
+      (cadr (div-terms L1 L2)))
+    (define (gcd-terms a b)
+      (if (empty-termlist? b)
+          (div-terms-by-int a
+                             (gcds (coeffs a)))
+          (gcd-terms b (pseudoremainder-terms a b))))
+    (define (coeffs L)
+      (if (empty-termlist? L)
+          '()
+          (cons (coeff (first-term L))
+                (coeffs (rest-terms L)))))
+    (define (gcds x)
+      (define (iter result x)
+        (if (null? x)
+            result
+            (iter (gcd result (car x))
+                  (cdr x))))
+      (if (null? x)
+          (error 'gcds "argument cannot be null.")
+          (iter (car x) (cdr x))))
+    ;; for 2.96
+    (define (pseudoremainder-terms L1 L2)
+      (let  ((o1 (order (first-term L1)))
+             (o2 (order (first-term L2))))
+        (if (< o1 o2)
+            (remainder-terms L1 L2)
+            (let* ((c (coeff (first-term L2)))
+                   (fct (expt c (- (+ 1 o1) o2)))
+                   (new-L1 (mul-terms-by-int L1 fct)))
+              (remainder-terms new-L1 L2)))))
+    ;; map function f to the coeffs of terms
+    (define (map-terms f L)
+      (if (empty-termlist? L)
+          L
+          (adjoin-term ((make-term L)
+                        (order (first-term L))
+                        (f (coeff (first-term L))))
+                       (map-terms f (rest-terms L)))))
+    (define (div-terms-by-int L n)
+      (map-terms (lambda (x) (div x n)) L))
+    (define (mul-terms-by-int L n)
+      (map-terms (lambda (x) (mul x n)) L))
+    ;; for 2.97
+    (define (reduce-terms n d)
+      (let* ((g (gcd-terms n d))
+             (c (coeff (first-term g)))
+             (o1 (max (order (first-term n))
+                      (order (first-term d))))
+             (o2 (order (first-term g)))
+             (fct (expt c (- (+ 1 o1) o2)))
+             (fct-n (mul-terms-by-int n fct))
+             (fct-d (mul-terms-by-int d fct))
+             (div-n (div-terms fct-n g))
+             (div-d (div-terms fct-d g)))
+        (if (and (empty-termlist? (cadr div-n))
+                 (empty-termlist? (cadr div-d)))
+            (let* ((numer-n (car div-n))
+                   (numer-d (car div-d))
+                   (gg (gcd (gcds (coeffs numer-n))
+                            (gcds (coeffs numer-d))))
+                   (nn (div-terms-by-int numer-n gg))
+                   (dd (div-terms-by-int numer-d gg)))
+              (list nn dd))
+            (error 'reduce-terms "remaider not null: ~a, ~a"
+                   (cadr div-n)
+                   (cadr div-d)))))
+    ;; internal
+    (define (add-poly p1 p2)
+      (if (same-variable? (var p1)
+                          (var p2))
+          (make-poly (var p1)
+                     (add-terms (terms p1)
+                                (terms p2)))
+          (add-poly p1
+                    (contents (data->poly (tag p2)
+                                          (var p1))))))
+    (define (mul-poly p1 p2)
+      (if (same-variable? (var p1)
+                          (var p2))
+          (make-poly (var p1)
+                     (mul-terms (terms p1)
+                                (terms p2)))
+          (mul-poly p1
+                    (contents (data->poly (tag p2)
+                                          (var p1))))))
+    (define (sub-poly p1 p2)
+      (add-poly p1 (negation-poly p2)))
+    (define (div-poly p1 p2)
+      (if (same-variable? (var p1)
+                          (var p2))
+          (let ((ts (div-terms (terms p1) (terms p2))))
+            (list (make-polynomial (var p1)
+                                   (car ts))
+                  (make-polynomial (var p1)
+                                   (cadr ts))))
+          (error 'div-poly "Polys not in the same var: ~a" (list p1 p2))))
+    (define (gcd-poly p1 p2)
+      (if (same-variable? (var p1) (var p2))
+          (make-poly (var p1)
+                     (gcd-terms (terms p1) (terms p2)))
+          (error 'gcd-poly "Polys not in the same var.")))
+    (define (reduce-poly p1 p2)
+      (if (same-variable? (var p1) (var p2))
+          (let ((rt (reduce-terms (terms p1) (terms p2))))
+            (list (make-polynomial (var p1) (car rt))
+                  (make-polynomial (var p1) (cadr rt))))
+          (reduce-poly p1
+                       (contents (data->poly (tag p2) (var p1))))))
+    (define (=zero-poly? x)
+      (define (iter L)
+        (if (empty-termlist? L)
+            #t
+            (if (=zero? (coeff (first-term L)))
+                (iter (rest-terms L))
+                #f)))
+      (iter (terms x)))
+    (define (negation-poly p)
+      (define (neg-terms L)
+        (if (empty-termlist? L)
+            L
+            (adjoin-term (neg-term (first-term L))
+                         (neg-terms (rest-terms L)))))
+      (define (neg-term t)
+        ((make-term t)
+         (order t)
+         (negation (coeff t))))
+      (make-poly (var p)
+                 (neg-terms (terms p))))
+    ;; interface to rest of the system
+    (define (tag p) (attach-tag 'polynomial p))
+    (put 'add '(polynomial polynomial)
+         (lambda (p1 p2) (tag (add-poly p1 p2))))
+    (put 'mul '(polynomial polynomial)
+         (lambda (p1 p2) (tag (mul-poly p1 p2))))
+    (put 'make 'polynomial
+         (lambda (var terms) (tag (make-poly var terms))))
+    (put '=zero? '(polynomial) =zero-poly?)
+    (put 'project '(polynomial)
+         (lambda (p) (tag (identity p))))
+    (put 'negation '(polynomial)
+         (lambda (p) (tag (negation-poly p))))
+    (put 'sub '(polynomial polynomial)
+         (lambda (p1 p2) (tag (sub-poly p1 p2))))
+    (put 'div-poly '(polynomial polynomial) div-poly)
+    (put 'variable '(polynomial) var)
+    (put 'term-list '(polynomial) terms)
+    (put 'greatest-common-divisor '(polynomial polynomial)
+         (lambda (p1 p2) (tag (gcd-poly p1 p2))))
+    (put 'reduce '(polynomial polynomial) reduce-poly)
+    'done)
+  (install-polynomial-package)
+  (define (make-polynomial var terms)
+    ((get 'make 'polynomial) var terms))
+  (define (variable p)
+    (apply-generic 'variable p))
+  (define (term-list p)
+    (apply-generic 'term-list p))
+  (define (polynomial? p)
+    (eq? 'polynomial (type-tag p)))
+  ;;;;;
+  ;;generic interface
+  (define (adjoin-term term term-list)
+    (apply-generic 'adjoin-term term term-list))
+  (define (first-term term-list)
+    (apply-generic 'first-term term-list))
+  (define (rest-terms term-list)
+    (apply-generic 'rest-terms term-list))
+  (define (empty-termlist? term-list)
+    (apply-generic 'empty-termlist? term-list))
+  (define (make-term order coeff)
+    (apply-generic 'make-term order coeff))
+  (define (order term)
+    (apply-generic 'order term))
+  (define (coeff term)
+    (apply-generic 'coeff term))
+  (define (the-empty-termlist x)
+    (apply-generic 'the-empty-termlist x))
+  (define (div-poly p1 p2)
+    (apply-generic 'div-poly p1 p2))
+  ;;;;;;;;;;;; sparse and dense package
+  (define (install-sparse-package)
+    ;;internal
+    (define (adjoin-term term term-list)
+      (if (=zero? (coeff term))
+          term-list
+          (cons term term-list)))
+    (define (the-empty-termlist) '())
+    (define (first-term term-list) (car term-list))
+    (define (rest-terms term-list) (cdr term-list))
+    (define (empty-termlist? term-list) (null? term-list))
+    (define (make-term order coeff) (list order coeff))
+    (define (order term) (car term))
+    (define (coeff term) (cadr term))
+    ;;interface
+    (define (tag x)
+      (attach-tag 'sparse x))
+    (put 'adjoin-term '(sparse sparse)
+         (lambda (term term-list) (tag (adjoin-term term term-list))))
+    (put 'the-empty-termlist 'sparse
+         (lambda () (tag (the-empty-termlist))))
+    (put 'the-empty-termlist '(sparse)
+         (lambda (x) (tag (the-empty-termlist))))
+    (put 'first-term '(sparse)
+         (lambda (term-list) (tag (first-term term-list))))
+    (put 'rest-terms '(sparse)
+         (lambda (term-list) (tag (rest-terms term-list))))
+    (put 'empty-termlist? '(sparse) empty-termlist?)
+    (put 'make-term 'sparse
+         (lambda (order coeff) (tag (make-term order coeff))))
+    (put 'order '(sparse) order)
+    (put 'coeff '(sparse) coeff)
+    'done)
+  (define (make-sparse-term order coeff)
+    ((get 'make-term 'sparse) order coeff))
+  (define (the-sparse-empty-list)
+    ((get 'the-empty-termlist 'sparse)))
+  ;; dense representation of terms
+  (define (install-dense-package)
+    ;;internal
+    (define (adjoin-term term term-list)
+      (append
+       (cons (coeff term)
+             (repeat 0 (- (order term)
+                          (length term-list))))
+       term-list))
+    (define (the-empty-termlist) '())
+    (define (first-term term-list)
+      (make-term (- (length term-list) 1)
+                 (car term-list)))
+    (define (rest-terms term-list) (cdr term-list))
+    (define (empty-termlist? term-list) (null? term-list))
+    (define (make-term order coeff) (list order coeff))
+    (define (order term) (car term))
+    (define (coeff term) (cadr term))
+    ;;interface
+    (define (tag x)
+      (attach-tag 'dense x))
+    (put 'adjoin-term '(dense dense)
+         (lambda (term term-list) (tag (adjoin-term term term-list))))
+    (put 'the-empty-termlist 'dense
+         (lambda () (tag (the-empty-termlist))))
+    (put 'the-empty-termlist '(dense)
+         (lambda (x) (tag (the-empty-termlist))))
+    (put 'first-term '(dense)
+         (lambda (term-list) (tag (first-term term-list))))
+    (put 'rest-terms '(dense)
+         (lambda (term-list) (tag (rest-terms term-list))))
+    (put 'empty-termlist? '(dense) empty-termlist?)
+    (put 'make-term 'dense
+         (lambda (order coeff) (tag (make-term order coeff))))
+    (put 'order '(dense) order)
+    (put 'coeff '(dense) coeff)
+    'done)
+  (define (make-dense-term order coeff)
+    ((get 'make-term 'dense) order coeff))
+  (define (the-dense-empty-list)
+    ((get 'the-empty-termlist 'dense)))
+
+  ;; install
+  (install-sparse-package)
+  (install-dense-package)
+  (install-polynomial-package)
+  ;; test
+  (define d1
+    (let* ((elist (the-dense-empty-list))
+           (t1 (make-dense-term 5 1))
+           (t2 (make-dense-term 2 8))
+           (t3 (make-dense-term 0 10)))
+      (adjoin-term t1
+                   (adjoin-term t2
+                                (adjoin-term t3 elist))))) ;'(dense 1 0 0 8 0 10)
+  (define d2
+    (let* ((elist (the-dense-empty-list))
+           (t1 (make-dense-term 3 7))
+           (t2 (make-dense-term 2 2))
+           (t3 (make-dense-term 0 5)))
+      (adjoin-term t1
+                   (adjoin-term t2
+                                (adjoin-term t3 elist))))) ;'(dense 1 0 0 8 0 10)
+  (first-term d1) ;'(dense 5 1)
+  (rest-terms d1) ;'(dense 0 0 8 0 10)
+  (coeff (first-term d1)) ; '(dense . 1)
+  ;;s1 => '(sparse (5 1) (2 8) (0 10))
+  (define s1
+    (let* ((elist (the-sparse-empty-list))
+           (t1 (make-sparse-term 5 1))
+           (t2 (make-sparse-term 2 8))
+           (t3 (make-sparse-term 0 10)))
+      (adjoin-term t1
+                   (adjoin-term t2
+                                (adjoin-term t3
+                                             elist)))))
+  ;;s2 => '(sparse (3 7) (2 2) (0 5))
+  (define s2
+    (let* ((elist (the-sparse-empty-list))
+           (t1 (make-sparse-term 3 7))
+           (t2 (make-sparse-term 2 2))
+           (t3 (make-sparse-term 0 5)))
+      (adjoin-term t1
+                   (adjoin-term t2
+                                (adjoin-term t3
+                                             elist)))))
+  (first-term s1) ;'(sparse 5 1)
+  (rest-terms s1) ;'(sparse (2 8) (0 10))
+  (coeff (first-term s1)) ; '(sparse . 1)
+  ;; test poly
+  (define dp1 (make-polynomial 'x d1)) ;'(polynomial x dense 1 0 0 8 0 10)
+  (define dp2 (make-polynomial 'x d2)) ;'(polynomial x dense 7 2 0 5)
+  (add dp1 dp2) ;'(polynomial x dense 1 0 7 10 0 15)
+  (mul dp1 dp2) ;'(polynomial x dense 7 2 0 61 16 70 60 0 50)
+  (define sp1 (make-polynomial 'x s1)) ;'(sparse (5 1) (2 8) (0 10))
+  (define sp2 (make-polynomial 'x s2)) ;'(sparse (3 7) (2 2) (0 5))
+  (add sp1 sp2) ;'(polynomial x sparse (5 1) (3 7) (2 10) (0 15))
+  (mul sp1 sp2) ;'(polynomial x sparse (8 7) (7 2) (5 61) (4 16) (3 70) (2 60) (0 50))
+
+  ;; div-poly
+  (define pp1 (make-polynomial 'x '(sparse (5 1) (0 -1))))
+  (define pp2 (make-polynomial 'x '(sparse (2 1) (0 -1))))
+  (div-poly pp1 pp2) ;'(x (sparse (3 1) (1 1)) (sparse (1 1) (0 -1)))
+#+end_src
+
+*** 2.92
+使用多态过程 ~(data->poly x v)~ 将数据x转化为以v为变量的多项式。
+比如可以将以x为变量的多项式 ~3x^2+1~ 转为以y为变量的多项式 ~0y+(3x^2+1)~
+- 将多项式分项转化，先转化 ~3x^2~, 再转化 ~1~， 最后将结果相加。
+- 将 ~3x^2~ 分开转化， 先转化coeff ~3~ ，再转化 ~x^2~ 最后将结果相成。
+
+转化 ~3x^2~ 有两种方式：
+一种方式是支持整数和多项式相乘，即支持 ~(mul integer poly)~ ，即要支持整数自动raise到
+多项式，只要实现raise complex->poly即可。因为raise只能传数据，不能传变量v，所以转化
+后的poly需要写死变量为k，最后的结果会有冗余数据，如
+~(poly y ((0 (poly k ((0 3))))))~ ，需要额外化简。
+这种方式只需要支持 ~poly->poly~ 即可，不需要支持 ~number->poly~
+
+另外一种方式是，在调用 ~mul~ 前，如果两个参数分别是整数和多项式，则主动调用 ~data->poly~
+将整数转化为多项式，再调用 ~mul~ 。这种方式不用实现raise number到poly，但不支持任意数的相乘
+#+begin_src scheme
+  (define make-single-termlist
+    (lambda (order coeff)
+      (adjoin-term (make-sparse-term order coeff)
+                   (the-sparse-empty-list))))
+  (define (poly->poly p)
+    (lambda (v)
+      (let ((old-v (variable p)))
+        (if (eq? old-v v)
+            p
+            (termlist->poly (term-list p) v old-v)))))
+  (define (termlist->poly L v old-v)
+    (if (empty-termlist? L)
+        (make-polynomial v (the-empty-termlist L))
+        (add (term->poly (first-term L) v old-v)
+             (termlist->poly (rest-terms L) v old-v))))
+  (define (term->poly t v old-v)
+    (let ((coeff-poly (data->poly (coeff t) v)))
+      (if (= 0 (order t))
+          coeff-poly
+          (let* ((old-v-poly (make-polynomial
+                              old-v
+                              (make-single-termlist (order t) 1)))
+                 (new-v-poly (make-polynomial
+                              v
+                              (make-single-termlist 0 old-v-poly))))
+            (mul coeff-poly new-v-poly)))))
+  (define (install-data->poly-package)
+    (define (number->poly x)
+      (lambda (v) (make-polynomial
+              v
+              (make-single-termlist 0 (drop-down x)))))
+    ;; interface
+    (put 'data->poly '(polynomial)
+         (lambda (x) (poly->poly (attach-tag 'polynomial x))))
+    (put 'data->poly '(integer)
+         (lambda (x) (number->poly x)))
+    (put 'data->poly '(rational)
+         (lambda (x) (number->poly (attach-tag 'rational x))))
+    (put 'data->poly '(real)
+         (lambda (x)
+           (if (integer? x)
+               (number->poly (attach-tag 'real x))
+               (number->poly x))))
+    (put 'data->poly '(complex)
+         (lambda (x) (number->poly (attach-tag 'complex x))))
+    'done)
+  (define (data->poly x v)
+    ((apply-generic 'data->poly x) v))
+  ;; modify raise package
+  (define (install-raise2-package)
+    ;;internal
+    (define (integer->rational x)
+      (make-rational x 1))
+    (define (rational->real r)
+      (let ((x (/ (* 1.0 (numer r))
+                  (denom r))))
+        ;; if x is integer, raise x to complex will loop forever.
+        (if (integer? x)
+            (attach-tag 'real x)
+            x)))
+    (define (real->complex r)
+      (make-complex-from-real-imag r 0))
+    (define (complex->polynomial c)
+      (let* ((x (attach-tag 'complex c))
+             (y (drop-down x)))
+        (make-polynomial 'k (make-single-termlist 0 y))))
+    ;; interface to the rest of the system
+    (put 'raise '(integer) integer->rational)
+    (put 'raise '(rational) rational->real)
+    (put 'raise '(real) real->complex)
+    ;;(put 'raise '(complex) complex->polynomial)
+    'done)
+  ;;(define type-tower '(integer rational real complex polynomial))
+  ;;install
+  (install-data->poly-package)
+  (install-raise2-package)
+  (define ssp (make-polynomial 'y '(sparse (0 3))))
+  (define xxx '(polynomial x sparse (1 1)))
+  ;; when we implement raising complex to poly.
+  ;;(mul 4 ssp) ;;'(polynomial y sparse (0 (polynomial k sparse (0 12.0))))
+
+  ;; (y+1)x^2 + (3y^2+2y+2)x + (y+3) =>
+  ;; (3x)y^2 + (x^2+2x+1)y + (x^2+2x+3)
+  (define y1 '(polynomial y sparse (1 1) (0 1)))
+  (define y2 '(polynomial y sparse (2 3) (1 2) (0 2)))
+  (define y3 '(polynomial y sparse (1 1) (0 3)))
+
+  (define xterms
+    (adjoin-term
+     (make-sparse-term 2 y1)
+     (adjoin-term
+      (make-sparse-term 1 y2)
+      (adjoin-term
+       (make-sparse-term 0 y3)
+       (the-sparse-empty-list)))))
+  (define x1 (make-polynomial 'x xterms))
+  (define yy (data->poly x1 'y))
+  #|
+   '(polynomial
+    y
+    sparse
+    (2 (polynomial x sparse (1 3)))
+    (1 (polynomial x sparse (2 1) (1 2) (0 1)))
+    (0 (polynomial x sparse (2 1) (1 2) (0 3))))
+  |#
+  (mul x1 yy)
+  #|
+  '(polynomial
+    x
+    sparse
+    (4 (polynomial y sparse (2 1) (1 2) (0 1)))
+    (3 (polynomial y sparse (3 6) (2 10) (1 8) (0 4)))
+    (2 (polynomial y sparse (4 9) (3 12) (2 18) (1 16) (0 10)))
+    (1 (polynomial y sparse (3 6) (2 22) (1 16) (0 12)))
+    (0 (polynomial y sparse (2 1) (1 6) (0 9))))
+  |#
+  (define zterms
+    (adjoin-term
+     (make-sparse-term 2 x1)
+     (adjoin-term
+      (make-sparse-term 1 yy)
+      (adjoin-term
+       (make-sparse-term 0 x1)
+       (the-sparse-empty-list)))))
+  (define z (make-polynomial 'z zterms))
+  (data->poly z 'y)
+  #|
+  '(polynomial
+    y
+    sparse
+    (2 (polynomial x sparse (1 (polynomial z sparse (2 3) (1 3) (0 3)))))
+    (1
+     (polynomial
+      x
+      sparse
+      (2 (polynomial z sparse (2 1) (1 1) (0 1)))
+      (1 (polynomial z sparse (2 2) (1 2) (0 2)))
+      (0 (polynomial z sparse (2 1) (1 1) (0 1)))))
+    (0
+     (polynomial
+      x
+      sparse
+      (2 (polynomial z sparse (2 1) (1 1) (0 1)))
+      (1 (polynomial z sparse (2 2) (1 2) (0 2)))
+      (0 (polynomial z sparse (2 3) (1 3) (0 3))))))
+  |#
+  (mul yy z)
+#+end_src
+
+*** 2.93
+#+begin_src scheme
+  (define (install-rational-package)
+    ;; internal procedures
+    (define (make-rat n d)
+      (cons n d))
+    (define (numer rat) (car rat))
+    (define (denom rat) (cdr rat))
+    (define (add-rat x y)
+      (make-rat (add (mul (numer x) (denom y))
+                     (mul (numer y) (denom x)))
+                (mul (denom x) (denom y))))
+    (define (sub-rat x y)
+      (make-rat (sub (mul (numer x) (denom y))
+                     (mul (numer y) (denom x)))
+                (mul (denom x) (denom y))))
+    (define (mul-rat x y)
+      (make-rat (mul (numer x) (numer y))
+                (mul (denom x) (denom y))))
+    (define (div-rat x y)
+      (make-rat (mul (numer x) (denom y))
+                (mul (denom x) (numer y))))
+    ;; interface to rest of the system
+    (define (tag x) (attach-tag 'rational x))
+    (put 'add '(rational rational)
+         (lambda (x y) (tag (add-rat x y))))
+    (put 'sub '(rational rational)
+         (lambda (x y) (tag (sub-rat x y))))
+    (put 'mul '(rational rational)
+         (lambda (x y) (tag (mul-rat x y))))
+    (put 'div '(rational rational)
+         (lambda (x y) (tag (div-rat x y))))
+    (put 'make 'rational
+         (lambda (n d) (tag (make-rat n d))))
+    ;; selectors
+    (put 'numer '(rational) numer)
+    (put 'denom '(rational) denom)
+    'done)
+  (define (install-project2-package)
+    ;;internal
+    (define (project-rational r)
+      (let ((numer (car r))
+            (denom (cdr r)))
+        (if (and (number? numer)
+                 (number? denom))
+            (round (/ numer denom))
+            (attach-tag 'rational r))))
+    ;;interface
+    (put 'project '(rational) project-rational)
+    'done)
+  (install-project2-package)
+  (install-rational-package)
+  (define p1 (make-polynomial 'x '(sparse (2 1) (0 1))))
+  (define p2 (make-polynomial 'x '(sparse (3 1) (0 1))))
+  (define rf (make-rational p2 p1))
+  (add rf rf)
+  #|
+   '(rational
+    (polynomial x sparse (5 2) (3 2) (2 2) (0 2))
+    polynomial
+    x
+    sparse
+    (4 1)
+    (2 2)
+    (0 1))
+  |#
+#+end_src
+
+*** 2.94
+gcd-poly refer to exe2.91
+#+begin_src scheme
+  (define (install-gcd-package)
+    (put 'greatest-common-divisor '(integer integer) gcd)
+    'done)
+  (define (greatest-common-divisor a b)
+    (apply-generic 'greatest-common-divisor a b))
+  (install-gcd-package)
+  ;;test
+  (define p1 (make-polynomial 'x '(sparse (4 1) (3 -1) (2 -2) (1 2))))
+  (define p2 (make-polynomial 'x '(sparse (3 1) (1 -1))))
+  (greatest-common-divisor p1 p2) ;'(polynomial x sparse (2 -1) (1 1))
+#+end_src
+
+*** 2.95
+#+begin_src scheme
+  (define p1 (make-polynomial 'x '(sparse (2 1) (1 -2) (0 1))))
+  (define p2 (make-polynomial 'x '(sparse (2 11) (0 7))))
+  (define p3 (make-polynomial 'x '(sparse (1 13) (0 5))))
+  (define q1 (mul p1 p2))
+  (define q2 (mul p1 p3))
+  (greatest-common-divisor q1 q2) ;div-terms: Terms cannot be divisible: (sparse 4 11), (sparse 3 13)
+#+end_src
+
+*** 2.96
+pseudoremainder-terms refer to exe2.91
+#+begin_src scheme
+  (greatest-common-divisor q1 q2) ;'(polynomial x sparse (2 1) (1 -2) (0 1))
+#+end_src
+
+*** 2.97
+refer to exe2.91
+#+begin_src scheme
+  (define (reduce n d)
+    (apply-generic 'reduce n d))
+  (define (install-reduce-package)
+    (define (reduce-integers n d)
+      (let ((g (gcd n d)))
+        (list (/ n g) (/ d g))))
+    (put 'reduce '(integer integer) reduce-integers)
+    'done)
+
+  (define (install-rational-package)
+    ;; internal procedures
+    (define (make-rat n d)
+      (let ((r (reduce n d)))
+        (cons (car r) (cadr r))))
+    (define (numer rat) (car rat))
+    (define (denom rat) (cdr rat))
+    (define (add-rat x y)
+      (make-rat (add (mul (numer x) (denom y))
+                     (mul (numer y) (denom x)))
+                (mul (denom x) (denom y))))
+    (define (sub-rat x y)
+      (make-rat (sub (mul (numer x) (denom y))
+                     (mul (numer y) (denom x)))
+                (mul (denom x) (denom y))))
+    (define (mul-rat x y)
+      (make-rat (mul (numer x) (numer y))
+                (mul (denom x) (denom y))))
+    (define (div-rat x y)
+      (make-rat (mul (numer x) (denom y))
+                (mul (denom x) (numer y))))
+    ;; interface to rest of the system
+    (define (tag x) (attach-tag 'rational x))
+    (put 'add '(rational rational)
+         (lambda (x y) (tag (add-rat x y))))
+    (put 'sub '(rational rational)
+         (lambda (x y) (tag (sub-rat x y))))
+    (put 'mul '(rational rational)
+         (lambda (x y) (tag (mul-rat x y))))
+    (put 'div '(rational rational)
+         (lambda (x y) (tag (div-rat x y))))
+    (put 'make 'rational
+         (lambda (n d) (tag (make-rat n d))))
+    ;; selectors
+    (put 'numer '(rational) numer)
+    (put 'denom '(rational) denom)
+    'done)
+
+  (install-reduce-package)
+  (install-rational-package)
+#+end_src
+test
+#+begin_src scheme
+  (define p1 (make-polynomial 'x '(sparse (1 1) (0 1))))
+  (define p2 (make-polynomial 'x '(sparse (3 1) (0 -1))))
+  (define p3 (make-polynomial 'x '(sparse (1 1))))
+  (define p4 (make-polynomial 'x '(sparse (2 1) (0 -1))))
+  (define rf1 (make-rational p1 p2))
+  (define rf2 (make-rational p3 p4))
+  (add rf1 rf2)
+  #|
+  '(rational
+    (polynomial x sparse (3 -1) (2 -2) (1 -3) (0 -1))
+    polynomial
+    x
+    sparse
+    (4 -1)
+    (3 -1)
+    (1 1)
+    (0 1))
+  |#
+  (reduce p2 p4);'((polynomial x sparse (2 1) (1 1) (0 1)) (polynomial x sparse (1 1) (0 1)))
+#+end_src
+
+* Chapter 3
+  :PROPERTIES:
+  :header-args: :tangle sicp_code_cl.scm
+  :END:
+** 3.1.1 Local State Variables
+   :PROPERTIES:
+  :header-args: :tangle sicp_code.scm
+  :END:
+*** 3.1
+#+begin_src scheme
+  (define (make-accumulator init)
+    (lambda (x)
+      (set! init (+ init x))
+      init))
+#+end_src
+
+*** 3.2
+#+begin_src scheme
+  (define (make-monitored f)
+    (let ((count 0))
+      (define (how-many-calls?) count)
+      (define (reset-count) (set! count 0))
+      (define (f-wrap x)
+        (set! count (+ count 1))
+        (f x))
+      (define (dispatch m)
+        (cond ((eq? m 'how-many-calls?) (how-many-calls?))
+              ((eq? m 'reset-count) (reset-count))
+              (else (f-wrap m))))
+      dispatch))
+  (define s (make-monitored sqrt))
+  (s 100)
+  (s 'how-many-calls?)
+  (s 'reset-count)
+  (s 'how-many-calls?)
+#+end_src
+
+*** 3.3
+#+begin_src scheme
+  (define (make-account balance pwd)
+    (define (withdraw amount)
+      (if (>= balance amount)
+          (begin (set! balance (- balance amount))
+                 balance)
+          "Insufficient funds"))
+    (define (deposit amount)
+      (set! balance (+ balance amount))
+      balance)
+    (define (refuse x)
+      "Incorrect password")
+    (define (dispatch p m)
+      (if (eq? p pwd)
+          (cond ((eq? m 'withdraw) withdraw)
+                ((eq? m 'deposit) deposit)
+                (else (error 'make-account "Unknown request: ~a" m)))
+          refuse))
+    dispatch)
+  (define acc (make-account 100 'haha))
+  ((acc 'haha 'withdraw) 40)
+  ((acc 'qaqa 'withdraw) 50)
+#+end_src
+
+*** 3.4
+#+begin_src scheme
+  (define (make-account balance pwd)
+    (let ((cnt 0))
+      (define (withdraw amount)
+        (if (>= balance amount)
+            (begin (set! balance (- balance amount))
+                   balance)
+            "Insufficient funds"))
+      (define (deposit amount)
+        (set! balance (+ balance amount))
+        balance)
+      (define (call-the-cops)
+        "cops!!!")
+      (define (refuse x)
+        (set! cnt (+ cnt 1))
+        (if (> cnt 7)
+            (call-the-cops)
+            "Incorrect password"))
+      (define (dispatch p m)
+        (if (eq? p pwd)
+            (begin
+              (set! cnt 0)
+              (cond ((eq? m 'withdraw) withdraw)
+                    ((eq? m 'deposit) deposit)
+                    (else (error 'make-account "Unknown request: ~a" m))))
+            refuse))
+      dispatch))
+  (define acc (make-account 100 'haha))
+  ((acc 'haha 'withdraw) 40)
+  ((acc 'qaqa 'withdraw) 50)
+#+end_src
+
+3.1.2 The Benefits of Introducing Assignment
+*** 3.5
+#+begin_src scheme
+  (define (random-in-range low high)
+    (let ((range (- high low)))
+      (+ low (random range))))
+  (define (monte-carlo trials experiment)
+    (define (iter trials-remaining trials-passed)
+      (cond ((= trials-remaining 0)
+             (/ trials-passed trials))
+            ((experiment)
+             (iter (- trials-remaining 1)
+                   (+ trials-passed 1)))
+            (else (iter (- trials-remaining 1)
+                        trials-passed))))
+    (iter trials 0))
+  (define (estimate-integral p x1 x2 y1 y2 trials)
+    (* (abs (- x1 x2))
+       (abs (- y1 y2))
+       (monte-carlo trials p)))
+  (define (square x) (* x x))
+  (define (estimate-pi trials)
+    (* 1.0
+       (estimate-integral
+        (lambda ()
+          (let ((x (random-in-range 0 2))
+                (y (random-in-range 0 2)))
+            (<= (+ (square (- x 1))
+                   (square (- y 1)))
+                1)))
+        0 2 0 2 trials)))
+#+end_src
+
+*** 3.6
+#+begin_src scheme
+  (define (make-rand n)
+    (define (dispatch m)
+      (cond ((eq? m 'generate)
+             (random n))
+            ((eq? m 'reset)
+             (lambda (new-value) (random-seed new-value)))
+            (else (error 'make-rand "Unknown message: ~a" m))))
+    dispatch)
+  (define random (make-rand 10))
+  (random 'generate)
+  ((random 'reset) 3)
+#+end_src
+
+*** 3.7
+#+begin_src scheme
+  (define (make-account balance pwd)
+    (define (withdraw amount)
+      (if (>= balance amount)
+          (begin (set! balance (- balance amount))
+                 balance)
+          "Insufficient funds"))
+    (define (deposit amount)
+      (set! balance (+ balance amount))
+      balance)
+    (define (refuse x)
+      "Incorrect password")
+    (define (dispatch p)
+      (lambda (m x)
+        (if (eq? p pwd)
+            (cond ((eq? m 'withdraw) (withdraw x))
+                  ((eq? m 'deposit) (deposit x))
+                  (else (error 'make-account "Unknown request: ~a" m)))
+            refuse)))
+    dispatch)
+
+  (define (make-joint account pwd new-pwd)
+    (define (dispatch acc)
+      (lambda (p)
+        (if (eq? p new-pwd)
+            acc
+            "Incorrect new-password")))
+    (let ((acc (account pwd)))
+      (if (procedure? acc)
+          (dispatch acc)
+          "Incorrect password")))
+
+  ;;test
+  (define peter-acc (make-account 100 'open-sesame))
+  (define paul-acc (make-joint peter-acc 'open-sesame 'rosebud))
+  ((peter-acc 'open-sesame) 'withdraw 20) ;80
+  ((paul-acc 'rosebud) 'withdraw 30) ;50
+  ((peter-acc 'open-sesame) 'withdraw 20) ;30
+#+end_src
+
+*** 3.8
+#+begin_src scheme
+  (define f
+    (let ((prev 0))
+      (lambda (x)
+        (let ((p prev))
+          (set! prev x)
+          p))))
+  (+ (f 0) (f 1)) ; 0
+  (+ (f 1) (f 0)) ; 1
+#+end_src
+
+** 3.2 The Environment Model of Evaluation
+To apply a procedure to arguments, create a new environment containing
+a frame that binds the parameters to the values of the arguments. The enclosing
+environment of this frame is the environment specified by the procedure.
+Now, within this new environment, evaluate the procedure body.
+*** 3.9
+[[./pic/3-9a.png]]
+[[./pic/3-9b.png]]
+*** 3.10
+[[./pic/3-10.png]]
+*** 3.11
+[[./pic/3-11.png]]
+
+** 3.3.1 Mutable List Structure
+*** 3.12
+#+begin_src lisp
+  (defun append! (x y)
+    (setf (cdr (last-pair x)) y)
+    x)
+  (defun last-pair (x)
+      (if (null (cdr x))
+          x
+          (last-pair (cdr x))))
+  (defparameter x (list 'a 'b))
+  (defparameter y (list 'c 'd))
+  (defparameter z (append x y))
+  (defparameter w (append! x y))
+#+end_src
+
+*** 3.13
+#+begin_src lisp
+  (defun make-cycle (x)
+    (setf (cdr (last-pair x)) x)
+    x)
+  (defparameter z (make-cycle (list 'a 'b 'c)))
+  ;; (last-pair z) will loop forever
+  ;; print z will also loop forever. But we can print it in scheme.
+#+end_src
+
+*** 3.14
+#+begin_src lisp
+  (defun mystery (x)
+    (defun my-loop (x y)
+      (if (null x)
+          y
+          (let ((temp (cdr x)))
+            (setf (cdr x) y)
+            (my-loop temp x))))
+    (my-loop x '()))
+  (defparameter v (list 'a 'b 'c 'd))
+  (defparameter w (mystery v))
+  v ;(A)
+  w ;(D C B A)
+#+end_src
+
+*** 3.15 SKIPPED
+
+*** 3.16
+#+begin_src lisp
+  (defun count-pairs (x)
+      (if (not (consp x))
+          0
+          (+ (count-pairs (car x))
+             (count-pairs (cdr x))
+             1)))
+  (defparameter v (list 'a 'b 'c))
+  (count-pairs v)  ;3
+  (defparameter v2 '((1) (2)))
+  (count-pairs v2) ;4
+  (defparameter v3 (cons v v))
+  (count-pairs v3) ;7
+  (defparameter v4
+    (let* ((v (cons 1 2))
+          (v1 (cons 1 v))
+          (v2 (cons 2 v)))
+      (setf (car v) v1)
+      (setf (cdr v) v2)
+      v))
+  ;; v4 and (count-pairs v4) will loop forever
+#+end_src
+
+*** 3.17
+#+begin_src lisp
+
+#+end_src
